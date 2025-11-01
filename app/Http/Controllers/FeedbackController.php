@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Mews\Purifier\Facades\Purifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -134,22 +135,26 @@ class FeedbackController extends Controller
             $html = nl2br(e($plain), false);
         }
 
+        // AUTOSAVE → sanitize and mirror into working_* only
         if ($isAutosave) {
-            // AUTOSAVE: update both mirrors so the editor rehydrates correctly
-            $submission->working_body = $plain;
-            $submission->working_html = $html;
+            $clean = Purifier::clean($html, 'tok');
+
+            $submission->working_html = $clean;
+            $submission->working_body = $this->htmlToPlain($clean);
             $submission->save();
 
-            if ($request->wantsJson()) {
-                return response()->json(['ok' => true, 'mode' => 'autosave']);
-            }
-            return back()->with('ok', 'Autosaved.');
+            return $request->wantsJson()
+                ? response()->json(['ok' => true, 'mode' => 'autosave'])
+                : back()->with('ok', 'Autosaved.');
         }
 
-        // MANUAL SAVE: snapshot EXACT HTML from TipTap to preserve formatting/images
+        // MANUAL SAVE → sanitize and create a Version snapshot
+        $clean = Purifier::clean($html, 'tok');
+
+        // Build attributes for the new Version snapshot
         $attrs = [
             'submission_id' => $submission->id,
-            'body_html'     => $html,
+            'body_html'     => $clean,
             'files_json'    => [],
         ];
 
@@ -165,9 +170,9 @@ class FeedbackController extends Controller
 
         $version = Version::create($attrs);
 
-        // Keep editor mirrors in sync with the snapshot content
-        $submission->working_body = $plain;
-        $submission->working_html = $html;
+        // Keep editor in sync with what was just saved (store both HTML and plain)
+        $submission->working_html = $clean;
+        $submission->working_body = $this->htmlToPlain($clean);
         $submission->save();
 
         if ($request->wantsJson()) {
@@ -183,7 +188,6 @@ class FeedbackController extends Controller
                 'milestone_note' => $version->milestone_note ?? null,
             ]);
         }
-
         return back()->with('ok', 'Draft saved.');
     }
 
