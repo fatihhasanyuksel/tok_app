@@ -194,7 +194,7 @@ class ThreadController extends Controller
             'seen'     => ['#f5f5f5', '#444'],
             'revised'  => ['#fff4e5', '#8a5a00'],
             'approved' => ['#e6ffed', '#135f26'],
-            'closed'   => ['#ddd', '#333'],
+            'closed'   => ['#e6ffed', '#135f26'],
         ];
 
         // All threads for this submission (newest first) so the LIST can render
@@ -235,6 +235,7 @@ class ThreadController extends Controller
      * Post a reply; auto-transitions status depending on the author.
      * - If STUDENT replies: open|seen → revised
      * - If TEACHER replies: revised|seen → open
+     * - Always clear is_resolved so list pill reverts from "Resolved".
      */
     public function reply(Request $request, string $type, int $thread)
     {
@@ -270,35 +271,33 @@ class ThreadController extends Controller
             'event'        => 'replied',
         ]);
 
-        // Determine if author is the student for this submission
-        // (Use actual submission owner for robustness)
-        $isStudentAuthor = strtolower((string) $viewer->role) === 'student'
-            && (int) $viewer->id === (int) ($comment->version->submission->student_id ?? 0);
-
-        $newStatus = null;
-
-        if ($isStudentAuthor) {
-            // Student reply ⇒ revised (awaiting teacher)
-            if (in_array($comment->status, ['open', 'seen'], true)) {
-                $newStatus = 'revised';
-            }
-        } else {
-            // Teacher/Admin reply ⇒ open (awaiting student)
-            if (in_array($comment->status, ['revised', 'seen'], true)) {
-                $newStatus = 'open';
-            }
-        }
-
-        if ($newStatus && $newStatus !== $comment->status) {
-            $comment->status = $newStatus;
-            $comment->save();
+        // Clear "resolved" on any reply
+        if ($comment->is_resolved) {
+            $comment->is_resolved = false;
 
             CommentEvent::create([
                 'comment_id'   => $comment->id,
                 'triggered_by' => $viewer->id,
-                'event'        => 'status:' . $newStatus,
+                'event'        => 'unresolved:on_reply',
             ]);
         }
+
+        // Determine if author is the submission's student
+        $isStudentAuthor = strtolower((string) $viewer->role) === 'student'
+            && (int) $viewer->id === (int) ($comment->version->submission->student_id ?? 0);
+
+        // Flip status based on role
+        if ($isStudentAuthor) {
+            if (in_array($comment->status, ['open', 'seen'], true)) {
+                $comment->status = 'revised'; // awaiting teacher
+            }
+        } else {
+            if (in_array($comment->status, ['revised', 'seen'], true)) {
+                $comment->status = 'open'; // awaiting student
+            }
+        }
+
+        $comment->save();
 
         return redirect()->route('thread.show', [
             'type'    => $type,
@@ -463,5 +462,41 @@ class ThreadController extends Controller
             'ok'        => true,
             'typing_by' => array_values(array_unique($typing)),
         ]);
+    }
+
+    /**
+     * Mark a feedback thread as resolved (teacher/admin only).
+     * Sets the persisted boolean flag; UI hookup is a later step.
+     */
+    public function resolve(Request $request, string $type, int $thread)
+    {
+        abort_unless(in_array($type, ['exhibition', 'essay']), 404);
+
+        $viewer = Auth::user();
+        abort_unless($viewer, 401);
+
+        // Role guard + ownership guard
+        $role = strtolower((string) $viewer->role);
+        abort_unless(in_array($role, ['teacher', 'admin'], true), 403, 'Only teachers/admins can resolve.');
+        $comment = Comment::with('version.submission')->findOrFail($thread);
+        abort_unless($this->canViewThread($viewer, $comment), 403, 'Access denied.');
+
+        if (!$comment->is_resolved) {
+            $comment->is_resolved = true;
+            $comment->save();
+
+            // Optional audit event
+            CommentEvent::create([
+                'comment_id'   => $comment->id,
+                'triggered_by' => $viewer->id,
+                'event'        => 'resolved',
+            ]);
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json(['ok' => true, 'is_resolved' => (bool) $comment->is_resolved]);
+        }
+
+        return redirect()->back()->with('ok', 'Thread marked as resolved.');
     }
 }
