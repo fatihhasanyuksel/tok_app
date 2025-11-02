@@ -23,7 +23,6 @@
     .pill { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:#f6f8ff; border:1px solid #e5eaf0; font-size:13px; color:#0a2e6c; }
     .pill .dot { min-width:18px; height:18px; padding:0 6px; display:inline-flex; align-items:center; justify-content:center; border-radius:999px; background:#0b6bd6; color:#fff; font-size:12px; }
 
-    .flash-ok { background:#e6ffed; border:1px solid #b7eb8f; padding:10px; margin:12px 16px 0; border-radius:8px; }
     .thread-card { background:#fff; border:1px solid #ddd; border-radius:12px; padding:14px; }
     .status-pill { font-size:12px; border:1px solid #dde; border-radius:999px; padding:2px 8px; text-transform:capitalize; }
     .bubble-list { display:flex; flex-direction:column; gap:10px; max-height:55vh; overflow:auto; padding:6px 10px; background:#f7f7f8; border:1px solid #eee; border-radius:10px; }
@@ -143,10 +142,6 @@
     </form>
   </div>
 </div>
-
-@if(session('ok'))
-  <div class="flash-ok">{{ session('ok') }}</div>
-@endif
 
 <div class="wrap">
   {{-- LEFT EDITOR --}}
@@ -275,7 +270,9 @@
             <div class="list">
               @foreach ($threads as $t)
                 @php
+                  $resolved = (bool) ($t->is_resolved ?? false);
                   $st = strtolower($t->status ?? 'open');
+
                   $colorMap = [
                     'open'     => ['#e8f1ff', '#0a2e6c'],
                     'seen'     => ['#e8f1ff', '#0a2e6c'],
@@ -283,6 +280,7 @@
                     'approved' => ['#e6ffed', '#135f26'],
                     'closed'   => ['#e6ffed', '#135f26'],
                   ];
+
                   $uiMap = [
                     'open'     => ['Awaiting Student', 'open'],
                     'seen'     => ['Awaiting Student', 'open'],
@@ -290,8 +288,14 @@
                     'closed'   => ['Resolved',         'closed'],
                     'approved' => ['Resolved',         'closed'],
                   ];
-                  [$label, $colorKey] = $uiMap[$st] ?? [ucfirst($st), $st];
-                  [$bg, $fg] = $colorMap[$colorKey] ?? ['#f6f8ff', '#334'];
+
+                  if ($resolved) {
+                      $label = 'Resolved';
+                      [$bg, $fg] = $colorMap['closed'];
+                  } else {
+                      [$label, $colorKey] = $uiMap[$st] ?? [ucfirst($st), $st];
+                      [$bg, $fg] = $colorMap[$colorKey] ?? ['#f6f8ff', '#334'];
+                  }
                 @endphp
 
                 <div class="thread-card">
@@ -303,11 +307,17 @@
                       @endif
                       <span class="muted" title="{{ optional($t->created_at)->setTimezone('Asia/Dubai')->format('Y-m-d H:i') }}"> · {{ $t->created_at?->diffForHumans() }}</span>
                     </div>
-                    <span class="status-pill" style="background:{{ $bg }}; color:{{ $fg }}">{{ $label }}</span>
+
+                    <!-- status pill honors is_resolved first -->
+                    <span class="status-pill" style="background:{{ $bg }}; color:{{ $fg }}; border-color:{{ $bg }}">
+                      {{ $label }}
+                    </span>
+
                     @if(!empty($t->selection_text))
                       <div class="sel" style="margin-top:6px;"><em>“{{ \Illuminate\Support\Str::limit($t->selection_text, 140) }}”</em></div>
                     @endif
                   </div>
+
                   <div style="margin-top:10px;">
                     <button class="btn secondary sm"
                             @click="openThread({ id: {{ $t->id }}, url: '{{ route('thread.show', ['type'=>$type, 'thread'=>$t->id] + $routeParamsBase) }}' })">

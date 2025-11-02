@@ -14,6 +14,11 @@ class Comment extends Model
         'author_id',
         'status',          // open | seen | revised | approved | outdated | reopened
         'selection_text',  // optional preview of selected text
+        // Note: we are NOT mass-assigning is_resolved yet; we’ll set it explicitly in controller.
+    ];
+
+    protected $casts = [
+        'is_resolved' => 'boolean',
     ];
 
     // Thread belongs to a specific frozen version

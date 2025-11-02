@@ -39,6 +39,7 @@
     })();
   </script>
   @vite(['resources/css/app.css', 'resources/js/app.js'])
+  <link rel="stylesheet" href="{{ asset('css/overrides.css') }}">
 </head>
 <body>
 @php

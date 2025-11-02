@@ -191,6 +191,12 @@ Route::middleware(['web', EnsureRole::class . ':teacher,admin'])->group(function
         ->whereNumber('thread')
         ->name('thread.status');
 
+    // Resolve a thread (teacher/admin only)
+    Route::post('/workspace/{type}/thread/{thread}/resolve', [ThreadController::class, 'resolve'])
+        ->whereIn('type', ['exhibition', 'essay'])
+        ->whereNumber('thread')
+        ->name('thread.resolve');
+
     Route::resource('students', StudentController::class);
 
     Route::get('/resources/manage', [ResourcesController::class, 'manage'])->name('resources.manage');

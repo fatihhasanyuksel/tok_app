@@ -1,5 +1,8 @@
 @php
-  // Internal status
+  // If a thread is resolved, force the UI to "Resolved" regardless of internal status.
+  $resolved = (bool) ($thread->is_resolved ?? false);
+
+  // Internal status (used only when not resolved)
   $st = strtolower($thread->status ?? 'open');
 
   // Shared palette
@@ -8,10 +11,10 @@
     'seen'     => ['#e8f1ff', '#0a2e6c'], // treat like open
     'revised'  => ['#fff4e5', '#8a5a00'], // amber
     'approved' => ['#e6ffed', '#135f26'], // green
-    'closed'   => ['#e6ffed', '#135f26'], // treat like approved
+    'closed'   => ['#e6ffed', '#135f26'], // treat like approved/green
   ];
 
-  // Internal -> UI label + which color-key to borrow
+  // Internal -> UI label + which color-key to borrow (used when NOT resolved)
   $uiMap = [
     'open'     => ['Awaiting Student', 'open'],
     'seen'     => ['Awaiting Student', 'open'],
@@ -20,12 +23,20 @@
     'approved' => ['Resolved',         'closed'],
   ];
 
-  [$label, $colorKey] = $uiMap[$st] ?? [ucfirst($st), $st];
-  [$bg, $fg]          = $colorMap[$colorKey] ?? ['#f6f8ff', '#334'];
+  if ($resolved) {
+      // Force green "Resolved"
+      $label   = 'Resolved';
+      [$bg, $fg] = $colorMap['closed'];
+  } else {
+      [$label, $colorKey] = $uiMap[$st] ?? [ucfirst($st), $st];
+      [$bg, $fg]          = $colorMap[$colorKey] ?? ['#f6f8ff', '#334'];
+  }
 
   // Keep parameter handling consistent with workspace
   $studentIdParam  = request('student') ?? ($student->id ?? null);
   $routeParamsBase = ['type' => $type] + ($studentIdParam ? ['student' => $studentIdParam] : []);
+
+  $isTeacher = in_array(optional(Auth::user())->role, ['teacher','admin']);
 @endphp
 
 <div
@@ -53,11 +64,23 @@
         @endif
       </div>
 
-      <!-- ✅ Status pill only (no manual controls here) -->
+      <!-- ✅ Status pill + (teacher-only) Resolve action -->
       <div style="display:flex; align-items:center; gap:8px;">
         <span class="status-pill" style="background:{{ $bg }}; color:{{ $fg }}; border-color:{{ $bg }}">
           {{ $label }}
         </span>
+
+        @if($isTeacher && !$resolved)
+          <form method="POST"
+                action="{{ route('thread.resolve', ['type' => $type, 'thread' => $thread->id] + $routeParamsBase) }}"
+                style="display:inline;">
+            @csrf
+            <button type="submit"
+              class="px-3 py-1 rounded-full text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition">
+              Resolve
+            </button>
+          </form>
+        @endif
       </div>
     </div>
 
