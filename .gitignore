@@ -1,23 +1,25 @@
-/.phpunit.cache
-/node_modules
-/public/build
-/public/hot
-/public/storage
-/storage/*.key
-/storage/pail
-/vendor
+# --- Laravel defaults ---
+/vendor/
+/node_modules/
+/bootstrap/cache/
+storage/*.key
+storage/*.log
+storage/debugbar/
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/logs/*
+
+# --- Env & IDE ---
 .env
-.env.backup
-.env.production
-.phpactor.json
+.env.*
 .phpunit.result.cache
-Homestead.json
-Homestead.yaml
-npm-debug.log
-yarn-error.log
-/auth.json
-/.fleet
-/.idea
-/.nova
-/.vscode
-/.zed
+.php-cs-fixer.cache
+*.sqlite
+/.idea/
+/.vscode/
+
+# --- App specific ---
+/public/cache/
+/public/build/
+/public/storage   # ignore the symlink itself (can't put a file beyond a symlink)
