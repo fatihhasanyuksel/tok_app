@@ -9,18 +9,49 @@
   <meta name="csrf-token" content="{{ csrf_token() }}">
 
   <style>
-    body{font-family:system-ui,Segoe UI,Roboto,Ubuntu,sans-serif;max-width:900px;margin:40px auto;padding:0 16px}
-    header{position:relative;display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;gap:12px}
-    nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    a{color:#b30000;text-decoration:none}
-    .btn{display:inline-block;padding:8px 14px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer}
-    .btn-danger{border-color:#f0c4c4}
-    .flash{background:#f6ffed;border:1px solid #b7eb8f;padding:10px;border-radius:8px;margin-bottom:16px}
-    input,textarea,select{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px}
-    form > *{margin:8px 0}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:8px;border-bottom:1px solid #eee}
-    small.muted{color:#666}
+  /* Global layout */
+  body{
+    font-family: system-ui, Segoe UI, Roboto, Ubuntu, sans-serif;
+    /* Use most of the viewport, max 1400px for readability */
+    max-width: min(1400px, 96vw);
+    margin: 40px auto;
+    padding: 0 20px;
+  }
+  @media (min-width: 1600px){
+    body{ max-width: 1500px; }
+  }
+
+  /* --- Top bar: title on left, actions on right --- */
+  header.top-bar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:16px;
+    margin-bottom:14px;
+  }
+  header.top-bar h1{
+    margin:0;
+  }
+  .top-actions{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    flex-wrap:wrap;
+  }
+  .top-actions .muted{
+    color:#666;
+    font-size:14px;
+  }
+  .btn-link{
+    background:none;border:none;padding:0;margin:0;
+    color:#6b21a8; /* purple-ish to match your links */
+    text-decoration:underline; cursor:pointer; font:inherit;
+  }
+  .btn-link:hover{ text-decoration:none; }
+
+  /* Keep your existing button look for other places */
+  .btn.btn-danger{ background:#eee; border:1px solid #ddd; padding:.35rem .6rem; border-radius:8px; }
+  form.inline{ display:inline; }
   </style>
 
   <script>
@@ -49,63 +80,43 @@
   $role          = $user->role ?? null;
 @endphp
 
-<header>
+<header class="top-bar">
   <h1>ToK App</h1>
 
-  <nav>
+  {{-- Right-aligned actions --}}
+  <div class="top-actions">
     @if($user)
-      <small class="muted">Logged in as: {{ $displayName }}</small>
+      <span class="muted">Logged in as: <strong>{{ $displayName }}</strong></span>
 
-      {{-- Role-aware header --}}
+      {{-- Role-aware quick links (keep Admin/Students shortcuts) --}}
       @if($role === 'admin')
         @unless (request()->routeIs('admin.dashboard'))
-          <a class="btn" href="{{ route('admin.dashboard') }}">Admin</a>
+          <a class="btn-link" href="{{ route('admin.dashboard') }}">Admin</a>
         @endunless
-
       @elseif($role === 'teacher')
         @unless (request()->routeIs('students.index'))
-          <a class="btn" href="{{ route('students.index') }}">Students</a>
+          <a class="btn-link" href="{{ route('students.index') }}">Students</a>
         @endunless
-        {{-- Workspace link removed --}}
-        <a class="btn" href="{{ route('resources.index') }}">Resources</a>
-        {{-- Messages toggle intentionally removed for teachers --}}
-
       @elseif($role === 'student')
         @unless (request()->routeIs('student.dashboard'))
-          <a class="btn" href="{{ route('student.dashboard') }}">Dashboard</a>
+          <a class="btn-link" href="{{ route('student.dashboard') }}">Dashboard</a>
         @endunless
-        {{-- Workspace link removed --}}
-        <a class="btn" href="{{ route('resources.index') }}">Resources</a>
-        {{-- Messages toggle intentionally removed for students --}}
       @endif
 
-      {{-- Logout --}}
-      <form method="POST" action="{{ route('logout') }}" style="display:inline">
-        @csrf
-        <button type="submit" class="btn btn-danger">Logout</button>
-      </form>
-    @else
-      <a class="btn" href="{{ route('login') }}">Login</a>
-    @endif
-  </nav>
+      {{-- Resources for ALL roles --}}
+      <a class="btn-link" href="{{ route('resources.index') }}">Resources</a>
 
-  {{-- Messages panel --}}
-  <div id="msg-panel" style="display:none; position:absolute; right:16px; top:72px; width:360px; max-height:60vh; overflow:auto; background:#fff; border:1px solid #e5e5e5; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.12); z-index:9999; padding:12px;">
-    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;">
-      <strong>Messages</strong>
-      <button type="button" class="btn" id="msg-close" style="padding:4px 8px;">Close</button>
-    </div>
-    <div id="msg-list">
-      <p class="small muted" style="margin:6px 0;">Loading…</p>
-    </div>
-    <form id="msg-form" style="margin-top:10px; display:none;">
-      @csrf
-      <textarea name="body" rows="3" placeholder="Type a message…" required
-        style="width:100%; padding:8px; border:1px solid #ccc; border-radius:8px;"></textarea>
-      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
-        <button type="submit" class="btn">Send</button>
-      </div>
-    </form>
+      {{-- Logout --}}
+      <form method="POST" action="{{ route('logout') }}" class="inline">
+        @csrf
+        <button type="submit" class="btn-link">Logout</button>
+      </form>
+@else
+  @if (!View::hasSection('hide_login_link'))
+    <a class="btn-link" href="{{ route('login') }}">Login</a>
+  @endif
+@endif
+
   </div>
 </header>
 
@@ -124,6 +135,25 @@
   @endif
 @endif
 
+{{-- Messages panel (hidden unless you later add a toggle) --}}
+<div id="msg-panel" style="display:none; position:absolute; right:16px; top:72px; width:360px; max-height:60vh; overflow:auto; background:#fff; border:1px solid #e5e5e5; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.12); z-index:9999; padding:12px;">
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;">
+    <strong>Messages</strong>
+    <button type="button" class="btn" id="msg-close" style="padding:4px 8px;">Close</button>
+  </div>
+  <div id="msg-list">
+    <p class="small muted" style="margin:6px 0;">Loading…</p>
+  </div>
+  <form id="msg-form" style="margin-top:10px; display:none;">
+    @csrf
+    <textarea name="body" rows="3" placeholder="Type a message…" required
+      style="width:100%; padding:8px; border:1px solid #ccc; border-radius:8px;"></textarea>
+    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
+      <button type="submit" class="btn">Send</button>
+    </div>
+  </form>
+</div>
+
 <script>
 (function () {
   const panel = document.getElementById('msg-panel');
@@ -132,10 +162,7 @@
   const list = document.getElementById('msg-list');
   const form = document.getElementById('msg-form');
 
-  // If no toggle (because header hides Messages), do nothing.
   if (!toggle || !panel) return;
-
-  const csrf = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
 
   async function fetchJSON(url) {
     const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });

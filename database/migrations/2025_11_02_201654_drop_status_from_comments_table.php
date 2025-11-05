@@ -8,20 +8,21 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Only add the column if it doesn't already exist
-        if (! Schema::hasColumn('comments', 'status')) {
+        // Only drop if it exists (safe on prod)
+        if (Schema::hasColumn('comments', 'status')) {
             Schema::table('comments', function (Blueprint $table) {
-                $table->string('status', 20)->default('open')->after('author_id');
+                $table->dropColumn('status');
             });
         }
     }
 
     public function down(): void
     {
-        // Only drop the column if it exists
-        if (Schema::hasColumn('comments', 'status')) {
+        // Recreate column if you ever need to roll back
+        if (! Schema::hasColumn('comments', 'status')) {
             Schema::table('comments', function (Blueprint $table) {
-                $table->dropColumn('status');
+                // Keep a conservative default so old UIs (if any) don’t explode
+                $table->string('status', 20)->default('open')->after('author_id');
             });
         }
     }

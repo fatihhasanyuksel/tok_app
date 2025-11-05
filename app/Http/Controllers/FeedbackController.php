@@ -52,11 +52,18 @@ class FeedbackController extends Controller
             ]);
         }
 
-        // Build thread list for the right pane
+        // Build thread list for the right pane (eager-load what the UI needs)
         $threads = \App\Models\Comment::whereHas('version', function ($q) use ($submission) {
                 $q->where('submission_id', $submission->id);
             })
-            ->with(['author:id,name'])
+            ->with([
+    'author:id,name',
+    // Important: let Eloquent select from comment_messages explicitly to avoid ambiguous columns
+    'latestMessage' => function ($q) {
+        $q->select('comment_messages.*');
+    },
+    'version.submission:id,student_id',
+])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -66,15 +73,6 @@ class FeedbackController extends Controller
             ->latest()
             ->first();
 
-        // Colors map used in workspace.blade.php
-        $colors = [
-            'open'     => ['#e8f1ff', '#0a2e6c'],
-            'seen'     => ['#f5f5f5', '#444'],
-            'revised'  => ['#fff4e5', '#8a5a00'],
-            'approved' => ['#e6ffed', '#135f26'],
-            'closed'   => ['#ddd', '#333'],
-        ];
-
         return view('workspace', [
             'type'          => $type,
             'student'       => $student,
@@ -82,7 +80,6 @@ class FeedbackController extends Controller
             'latestVersion' => $latestVersion,
             'thread'        => null,
             'threads'       => $threads,
-            'colors'        => $colors,
             'general'       => $general,
         ]);
     }
@@ -197,7 +194,7 @@ class FeedbackController extends Controller
      */
     public function history(Request $request, string $type)
     {
-        abort_unless(in_array($type, ['exhibition','essay'], true), 404);
+        abort_unless(in_array($type, ['exhibition','essay']), true);
 
         $viewer = Auth::user();
         if (!$viewer) return redirect('/login');
@@ -306,7 +303,7 @@ class FeedbackController extends Controller
         $viewer = Auth::user();
         if (!$viewer) return redirect('/login');
 
-        // Staff-only
+        // Staff-only (students can export their own work too)
         $isStaff = in_array(strtolower((string) $viewer->role), ['teacher','admin'], true);
         abort_unless($isStaff || strtolower((string)$viewer->role) === 'student', 403);
 
@@ -343,15 +340,20 @@ class FeedbackController extends Controller
             ->orderBy('created_at', 'asc')
             ->get();
 
-        // Threads + messages
+        // Threads + messages (eager-load for derived label)
         $threads = \App\Models\Comment::whereHas('version', function ($q) use ($submission) {
                 $q->where('submission_id', $submission->id);
             })
             ->with([
-                'author:id,name',
-                'messages' => function ($q) { $q->orderBy('created_at', 'asc'); },
-                'messages.author:id,name',
-            ])
+    'author:id,name',
+    'messages' => function ($q) { $q->orderBy('created_at', 'asc'); },
+    'messages.author:id,name',
+    // Important: fully-qualify the select so latestOfMany join has no ambiguity
+    'latestMessage' => function ($q) {
+        $q->select('comment_messages.*');
+    },
+    'version.submission:id,student_id',
+])
             ->orderBy('created_at', 'asc')
             ->get();
 
@@ -444,10 +446,23 @@ class FeedbackController extends Controller
       <div class="muted">No feedback threads.</div>
     <?php else: ?>
       <?php foreach ($threads as $t): ?>
+        <?php
+          // Derive label without legacy statuses
+          $ownerId      = optional(optional($t->version)->submission)->student_id;
+          $lastAuthorId = optional($t->latestMessage)->author_id;
+
+          if ($t->is_resolved) {
+              $label = 'Resolved';
+          } elseif ($lastAuthorId && $ownerId && (int)$lastAuthorId === (int)$ownerId) {
+              $label = 'Awaiting Teacher';
+          } else {
+              $label = 'Awaiting Student';
+          }
+        ?>
         <div style="border:1px solid #eee; border-radius:10px; padding:10px; margin:10px 0;">
           <div>
             <strong>Thread #<?= (int)$t->id ?></strong>
-            <span class="muted"> · <?= $esc(strtoupper($t->status ?? 'open')) ?> · <?= $esc(optional($t->created_at)->format('Y-m-d H:i')) ?></span>
+            <span class="muted"> · <?= $esc($label) ?> · <?= $esc(optional($t->created_at)->format('Y-m-d H:i')) ?></span>
           </div>
           <?php if (!empty($t->selection_text)): ?>
             <div class="sel"><em>“<?= $esc($t->selection_text) ?>”</em></div>

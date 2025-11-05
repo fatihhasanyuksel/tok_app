@@ -3,39 +3,67 @@
 @section('body')
 <h2>Edit Teacher</h2>
 
-<form method="post" action="{{ route('admin.teachers.update', $teacher) }}">
-  @csrf @method('PUT')
+<style>
+  .form {max-width:720px}
+  .row{margin:14px 0}
+  .label{display:block;font-weight:600;margin-bottom:6px}
+  .field{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px}
+  .capsule{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid #ddd;border-radius:10px;background:#fafafa;margin-right:10px}
+  .actions{display:flex;gap:8px;margin-top:18px}
+  .error{color:#b00020;font-size:12px;margin-top:6px}
+  .hint{display:block;color:#666;font-size:12px;margin-top:4px}
+</style>
 
-  <label>Name</label>
-  <input name="name" value="{{ old('name', $teacher->name) }}" required>
-
-  <label>Email</label>
-  <input type="email" name="email" value="{{ old('email', $teacher->email) }}" required>
-
-  <label>New Password (leave blank to keep current)</label>
-  <input type="password" name="password">
-
-  <label>
-    <input type="checkbox" name="active" value="1" {{ old('active', $teacher->active) ? 'checked' : '' }}>
-    Active
-  </label>
-
-  <label>
-    <input type="checkbox" name="is_admin" value="1" {{ old('is_admin', $teacher->is_admin) ? 'checked' : '' }}>
-    Admin
-  </label>
-
-  <button class="btn">Update</button>
-  <a class="btn" href="{{ route('admin.teachers.index') }}">Cancel</a>
-</form>
-
-<hr>
-
-<h3>Reset Password</h3>
-<form method="post" action="{{ route('admin.teachers.reset', $teacher) }}">
+<form class="form" method="POST" action="{{ route('admin.teachers.update', $teacher) }}">
   @csrf
-  <label>New Password</label>
-  <input type="password" name="password" required>
-  <button class="btn">Reset Password</button>
+  @method('PUT')
+
+  <div class="row">
+    <label class="label" for="name">Full name</label>
+    <input id="name" name="name" class="field" value="{{ old('name', $teacher->name) }}" required>
+    @error('name') <div class="error">{{ $message }}</div> @enderror
+  </div>
+
+  <div class="row">
+    <label class="label" for="email">Email</label>
+    <input id="email" type="email" name="email" class="field" value="{{ old('email', $teacher->email) }}" required>
+    @error('email') <div class="error">{{ $message }}</div> @enderror
+  </div>
+
+  <div class="row">
+    <label class="label" for="password">New password (optional)</label>
+    <input id="password" type="password" name="password" class="field" placeholder="Leave blank to keep current">
+    <small class="hint">Leave empty to keep the current password.</small>
+    @error('password') <div class="error">{{ $message }}</div> @enderror
+  </div>
+
+  <div class="row" aria-label="Status and role">
+    {{-- Active --}}
+    <span class="capsule">
+      <input type="hidden" name="active" value="0">
+      <input id="active" type="checkbox" name="active" value="1"
+             {{ old('active', (int)$teacher->active) ? 'checked' : '' }}>
+      <label for="active" style="margin:0;cursor:pointer;">
+        <strong>Active</strong>
+        <span class="hint">Can sign in</span>
+      </label>
+    </span>
+
+    {{-- Admin --}}
+    <span class="capsule">
+      <input type="hidden" name="is_admin" value="0">
+      <input id="is_admin" type="checkbox" name="is_admin" value="1"
+             {{ old('is_admin', (int)$teacher->is_admin) ? 'checked' : '' }}>
+      <label for="is_admin" style="margin:0;cursor:pointer;">
+        <strong>Admin</strong>
+        <span class="hint">Access to admin pages</span>
+      </label>
+    </span>
+  </div>
+
+  <div class="actions">
+    <button class="btn" type="submit">Update</button>
+    <a class="btn btn-danger" href="{{ route('admin.teachers.index') }}">Cancel</a>
+  </div>
 </form>
 @endsection

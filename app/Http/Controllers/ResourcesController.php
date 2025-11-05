@@ -42,22 +42,26 @@ class ResourcesController extends Controller
             'file' => [
                 'required',
                 'file',
-                'max:20480', // 20 MB
+                'max:30720', // 30 MB
             ],
         ]);
 
-        $file      = $data['file'];
-        $origName  = $file->getClientOriginalName();
-        $safeName  = $this->sanitizeFilename($origName);
-        $dir       = 'public/tok';
+        $file     = $data['file'];
+        $origName = $file->getClientOriginalName();
+        $safeName = $this->sanitizeFilename($origName);
+
+        // Use the public disk and the 'tok' directory
+        $disk = Storage::disk('public');
+        $dir  = 'tok';
         $pathCheck = $dir . '/' . $safeName;
 
         // Avoid overwriting: if exists, append -1, -2, ...
-        if (Storage::exists($pathCheck)) {
-            $safeName = $this->uniquifyFilename($dir, $safeName);
+        if ($disk->exists($pathCheck)) {
+            $safeName = $this->uniquifyFilenameOnDisk($disk, $dir, $safeName);
         }
 
-        $file->storeAs($dir, $safeName);
+        // Store the file to storage/app/public/tok
+        $disk->putFileAs($dir, $file, $safeName);
 
         return redirect()
             ->route('resources.manage')
@@ -69,18 +73,18 @@ class ResourcesController extends Controller
      */
     public function destroy(Request $request, string $filename)
     {
-        $dir  = 'public/tok';
+        $disk = Storage::disk('public');
+        $dir  = 'tok';
         $name = $this->sanitizeFilename($filename);
 
-        // Only allow deleting files that exist in the expected dir
         $path = $dir . '/' . $name;
-        if (!Storage::exists($path)) {
+        if (!$disk->exists($path)) {
             return redirect()
                 ->route('resources.manage')
                 ->with('error', 'File not found: ' . $name);
         }
 
-        Storage::delete($path);
+        $disk->delete($path);
 
         return redirect()
             ->route('resources.manage')
@@ -96,20 +100,21 @@ class ResourcesController extends Controller
      */
     private function listFiles(): array
     {
-        $dir = 'public/tok';
+        $disk = Storage::disk('public');
+        $dir  = 'tok';
         $publicUrlPrefix = '/storage/tok/';
 
         // Ensure directory exists
-        if (!Storage::exists($dir)) {
-            Storage::makeDirectory($dir);
+        if (!$disk->exists($dir)) {
+            $disk->makeDirectory($dir);
         }
 
         $files = [];
-        foreach (Storage::files($dir) as $path) {
-            // $path like "public/tok/filename.ext"
+        foreach ($disk->files($dir) as $path) {
+            // $path like "tok/filename.ext"
             $name = basename($path);
-            $size = Storage::size($path);
-            $time = Storage::lastModified($path);
+            $size = $disk->size($path);
+            $time = $disk->lastModified($path);
 
             $files[] = [
                 'name'    => $name,
@@ -119,7 +124,7 @@ class ResourcesController extends Controller
             ];
         }
 
-        // Sort by name (asc). You could sort by time desc if preferred.
+        // Sort by name (asc)
         usort($files, fn ($a, $b) => strcasecmp($a['name'], $b['name']));
 
         return [$files, $dir];
@@ -129,11 +134,10 @@ class ResourcesController extends Controller
     {
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];
         $bytes = max($bytes, 0);
-        $pow   = $bytes > 0 ? floor(log($bytes, 1024)) : 0;
+        $pow   = $bytes > 0 ? (int)floor(log($bytes, 1024)) : 0;
         $pow   = min($pow, count($units) - 1);
 
-        // Uncomment next two lines if you want exact 1024 steps formatting:
-        $bytes /= (1 << (10 * $pow));
+        $bytes = $bytes / (1 << (10 * $pow)); // divide by 1024^pow
         return round($bytes, $precision) . ' ' . $units[$pow];
     }
 
@@ -152,7 +156,10 @@ class ResourcesController extends Controller
         return $ext ? "{$base}.{$ext}" : $base;
     }
 
-    private function uniquifyFilename(string $dir, string $filename): string
+    /**
+     * Ensure a unique filename on the given disk/dir (adds -1, -2, ...)
+     */
+    private function uniquifyFilenameOnDisk($disk, string $dir, string $filename): string
     {
         $ext  = pathinfo($filename, PATHINFO_EXTENSION);
         $base = pathinfo($filename, PATHINFO_FILENAME);
@@ -162,7 +169,7 @@ class ResourcesController extends Controller
             $candidate = $ext ? "{$base}-{$n}.{$ext}" : "{$base}-{$n}";
             $path = $dir . '/' . $candidate;
             $n++;
-        } while (Storage::exists($path));
+        } while ($disk->exists($path));
 
         return $candidate;
     }

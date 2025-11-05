@@ -36,12 +36,8 @@ class ThreadController extends Controller
     }
 
     /**
-     * Create a new feedback thread.
-     * POST /workspace/{type}/thread  (route name: thread.create)
-     *
-     * Auto-status on creation:
-     * - Teacher/Admin author  => status 'open'    (Awaiting Student)
-     * - Student author        => status 'revised' (Awaiting Teacher)
+     * Create a new feedback thread (POST /workspace/{type}/thread).
+     * We only persist is_resolved (bool). "Awaiting" is derived from last message author.
      */
     public function create(Request $request, string $type)
     {
@@ -63,6 +59,8 @@ class ThreadController extends Controller
         $data = $request->validate([
             'selection_text' => ['nullable', 'string', 'max:255'],
             'body'           => ['required', 'string', 'min:1', 'max:4000'],
+            'start_offset'   => ['nullable', 'integer', 'min:0'],
+            'end_offset'     => ['nullable', 'integer', 'gte:start_offset'],
         ]);
 
         // Ensure submission + latest version exist
@@ -78,32 +76,30 @@ class ThreadController extends Controller
                 'files_json'    => [],
             ]);
 
-        // Decide initial status based on author role
-        $initialStatus = (strtolower((string) $viewer->role) === 'student') ? 'revised' : 'open';
-
         // Create thread
         $thread = Comment::create([
             'version_id'     => $version->id,
             'author_id'      => $viewer->id,
-            'status'         => $initialStatus,
             'selection_text' => $data['selection_text'] ?? null,
+            'start_offset'   => $data['start_offset'] ?? null,
+            'end_offset'     => $data['end_offset'] ?? null,
         ]);
 
-        // Seed first message
+        // First message
         CommentMessage::create([
             'comment_id' => $thread->id,
             'author_id'  => $viewer->id,
             'body'       => trim($data['body']),
         ]);
 
-        // Log
+        // Audit
         CommentEvent::create([
             'comment_id'   => $thread->id,
             'triggered_by' => $viewer->id,
             'event'        => 'created',
         ]);
 
-        // Return JSON for AJAX callers; keeps the UI on-page
+        // AJAX-friendly response
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'ok'  => true,
@@ -125,9 +121,7 @@ class ThreadController extends Controller
     }
 
     /**
-     * Show a single thread inside the unified workspace view.
-     * Auto-transition: if the STUDENT views an "open" thread → mark as "seen".
-     * Also supports returning a PARTIAL when ?partial=1 or AJAX request (for the side panel).
+     * Show a single thread inside the workspace (returns full page or partial for side-pane).
      */
     public function show(Request $request, string $type, int $thread)
     {
@@ -140,22 +134,22 @@ class ThreadController extends Controller
             return redirect('/login');
         }
 
-        // Load thread + relationships needed for ownership check
+        // Load thread + relationships. IMPORTANT: include author.role everywhere.
         $activeThread = Comment::with([
-            'author:id,name',
+            'author:id,role,name',
             'anchor',
-            'version.submission', // needed for canViewThread()
-            'messages' => fn ($q) => $q->with('author:id,name')->orderBy('created_at', 'asc'),
-            'events'   => fn ($q) => $q->with('triggeredBy:id,name')->orderBy('created_at', 'asc'),
+            'version.submission',
+            'messages' => fn ($q) => $q->with('author:id,role,name')->orderBy('created_at', 'asc'),
+            'events'   => fn ($q) => $q->with('triggeredBy:id,role,name')->orderBy('created_at', 'asc'),
         ])->findOrFail($thread);
 
-        // 🔒 Authorization: viewer must be teacher/admin OR owning student
+        // Authorization
         abort_unless($this->canViewThread($viewer, $activeThread), 403, 'Access denied.');
 
         $latestVersion = $activeThread->version;
         $submission    = $latestVersion->submission;
 
-        // Display student in header based on actual submission owner (robust against spoofed ?student=)
+        // Display student in header based on actual submission owner
         $studentDisplay = $submission && $submission->student_id
             ? User::find($submission->student_id)
             : ($studentId ? User::find((int) $studentId) : $viewer);
@@ -166,46 +160,15 @@ class ThreadController extends Controller
             ->latest()
             ->first();
 
-        // Auto-transition: student viewing an "open" thread ⇒ seen
-        if (
-            $viewer &&
-            strtolower((string) $viewer->role) === 'student' &&
-            (int) $viewer->id === (int) ($submission->student_id ?? 0) &&
-            ($activeThread->status === 'open')
-        ) {
-            $activeThread->status = 'seen';
-            $activeThread->save();
-
-            CommentEvent::create([
-                'comment_id'   => $activeThread->id,
-                'triggered_by' => $viewer->id,
-                'event'        => 'status:seen',
-            ]);
-
-            // Refresh events in-memory for the view (optional)
-            $activeThread->load([
-                'events' => fn ($q) => $q->with('triggeredBy:id,name')->orderBy('created_at', 'asc'),
-            ]);
-        }
-
-        // Style map for status pills (used both in full + partial views)
-        $colors = [
-            'open'     => ['#e8f1ff', '#0a2e6c'],
-            'seen'     => ['#f5f5f5', '#444'],
-            'revised'  => ['#fff4e5', '#8a5a00'],
-            'approved' => ['#e6ffed', '#135f26'],
-            'closed'   => ['#e6ffed', '#135f26'],
-        ];
-
-        // All threads for this submission (newest first) so the LIST can render
+        // All threads for this submission (newest first) → list in the right pane
         $threads = Comment::whereHas('version', function ($q) use ($submission) {
                 $q->where('submission_id', $submission->id);
             })
-            ->with('author:id,name')
+            ->with('author:id,role,name')
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // If asked for partial (side panel fetch), return only the thread block
+        // Partial return (for side panel)
         if ($request->boolean('partial') || $request->ajax()) {
             return response()->view('partials.thread', [
                 'type'          => $type,
@@ -214,28 +177,23 @@ class ThreadController extends Controller
                 'latestVersion' => $latestVersion,
                 'thread'        => $activeThread,
                 'threads'       => $threads,
-                'colors'        => $colors,
             ]);
         }
 
-        // Otherwise render full workspace page
+        // Full workspace page
         return view('workspace', [
             'type'          => $type,
             'student'       => $studentDisplay,
             'submission'    => $submission,
             'latestVersion' => $latestVersion,
-            'thread'        => $activeThread,   // opens the right pane in thread mode
-            'threads'       => $threads,        // list populated
-            'colors'        => $colors,         // status pill colors
+            'thread'        => $activeThread,   // opens side pane in thread mode
+            'threads'       => $threads,        // list on the right
             'general'       => $general,
         ]);
     }
 
     /**
-     * Post a reply; auto-transitions status depending on the author.
-     * - If STUDENT replies: open|seen → revised
-     * - If TEACHER replies: revised|seen → open
-     * - Always clear is_resolved so list pill reverts from "Resolved".
+     * Post a reply (auto-unresolve any resolved thread).
      */
     public function reply(Request $request, string $type, int $thread)
     {
@@ -252,17 +210,19 @@ class ThreadController extends Controller
             'body' => ['required', 'string', 'max:2000'],
         ]);
 
-        // Need version->submission for ownership check
         $comment = Comment::with('version.submission')->findOrFail($thread);
 
-        // 🔒 Authorization: must be teacher/admin OR owning student
         abort_unless($this->canViewThread($viewer, $comment), 403, 'Access denied.');
 
-        // Create reply
+        $body = trim($data['body']);
+        if ($body === '') {
+            return back()->withErrors(['body' => 'Reply cannot be empty.']);
+        }
+
         CommentMessage::create([
             'comment_id' => $comment->id,
             'author_id'  => $viewer->id,
-            'body'       => trim($data['body']),
+            'body'       => $body,
         ]);
 
         CommentEvent::create([
@@ -271,7 +231,7 @@ class ThreadController extends Controller
             'event'        => 'replied',
         ]);
 
-        // Clear "resolved" on any reply
+        // Clear resolve on any reply
         if ($comment->is_resolved) {
             $comment->is_resolved = false;
 
@@ -280,21 +240,6 @@ class ThreadController extends Controller
                 'triggered_by' => $viewer->id,
                 'event'        => 'unresolved:on_reply',
             ]);
-        }
-
-        // Determine if author is the submission's student
-        $isStudentAuthor = strtolower((string) $viewer->role) === 'student'
-            && (int) $viewer->id === (int) ($comment->version->submission->student_id ?? 0);
-
-        // Flip status based on role
-        if ($isStudentAuthor) {
-            if (in_array($comment->status, ['open', 'seen'], true)) {
-                $comment->status = 'revised'; // awaiting teacher
-            }
-        } else {
-            if (in_array($comment->status, ['revised', 'seen'], true)) {
-                $comment->status = 'open'; // awaiting student
-            }
         }
 
         $comment->save();
@@ -320,15 +265,16 @@ class ThreadController extends Controller
             return response()->json(['ok' => false, 'error' => 'unauthorized'], 401);
         }
 
-        // Need ownership check
-        $threadModel = Comment::with(['messages.author:id,name', 'version.submission'])->findOrFail($thread);
+        // Need ownership check + authors with role for correct bubble alignment etc.
+        $threadModel = Comment::with([
+            'messages.author:id,role,name',
+            'version.submission'
+        ])->findOrFail($thread);
 
-        // 🔒 Authorization: must be teacher/admin OR owning student
         if (!$this->canViewThread($viewer, $threadModel)) {
             return response()->json(['ok' => false, 'error' => 'forbidden'], 403);
         }
 
-        // Use actual owner for rendering consistency
         $student = $threadModel->version && $threadModel->version->submission
             ? User::find($threadModel->version->submission->student_id)
             : ($studentId ? User::find((int) $studentId) : $viewer);
@@ -349,57 +295,23 @@ class ThreadController extends Controller
     }
 
     /**
-     * Manually set status (teacher/admin control).
-     * Allowed: open | seen | revised | approved | closed
+     * Deprecated: manual status workflow.
      */
     public function setStatus(Request $request, string $type, int $thread)
     {
         abort_unless(in_array($type, ['exhibition', 'essay']), 404);
 
-        $viewer    = Auth::user();
-        $studentId = $request->query('student');
-
-        if (!$viewer && !$studentId) {
-            return redirect('/login');
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'ok'    => false,
+                'error' => 'Status workflow removed. Use Resolve (teacher) or just reply (auto-unresolve).',
+            ], 410);
         }
 
-        // Need version->submission for ownership check
-        $comment = Comment::with('version.submission')->findOrFail($thread);
-
-        // 🔒 Authorization: must be teacher/admin AND able to view the thread
-        $role = strtolower((string) $viewer->role);
-        abort_unless(in_array($role, ['teacher', 'admin'], true), 403, 'Only teachers/admins can change status.');
-        abort_unless($this->canViewThread($viewer, $comment), 403, 'Access denied.');
-
-        $allowed = ['open', 'seen', 'revised', 'approved', 'closed'];
-
-        $data = $request->validate([
-            'status' => ['required', 'in:' . implode(',', $allowed)],
-        ]);
-
-        $oldStatus = $comment->status;
-        $newStatus = $data['status'];
-
-        if ($oldStatus !== $newStatus) {
-            $comment->status = $newStatus;
-            $comment->save();
-
-            CommentEvent::create([
-                'comment_id'   => $comment->id,
-                'triggered_by' => $viewer->id,
-                'event'        => 'status:' . $newStatus,
-            ]);
-        }
-
-        if ($request->wantsJson()) {
-            return response()->json(['ok' => true, 'status' => $comment->status]);
-        }
-
-        return redirect()->route('thread.show', [
-            'type'    => $type,
-            'thread'  => $comment->id,
-            'student' => $studentId,
-        ])->with('ok', 'Status ' . ($oldStatus === $newStatus ? 'unchanged' : 'updated to “' . ucfirst($newStatus) . '”') . '.');
+        return redirect()->back()->with(
+            'ok',
+            'Statuses are deprecated. Use the green “Resolve” button (teacher) or reply to continue the thread.'
+        );
     }
 
     /**
@@ -439,7 +351,7 @@ class ThreadController extends Controller
         }
 
         // Ensure the user can view the thread
-        $comment = Comment::with(['messages.author:id,name', 'version.submission'])->findOrFail($thread);
+        $comment = Comment::with(['messages.author:id,role,name', 'version.submission'])->findOrFail($thread);
         if (!$this->canViewThread($viewer, $comment)) {
             return response()->json(['ok' => false], 403);
         }
@@ -466,7 +378,6 @@ class ThreadController extends Controller
 
     /**
      * Mark a feedback thread as resolved (teacher/admin only).
-     * Sets the persisted boolean flag; UI hookup is a later step.
      */
     public function resolve(Request $request, string $type, int $thread)
     {
@@ -475,9 +386,9 @@ class ThreadController extends Controller
         $viewer = Auth::user();
         abort_unless($viewer, 401);
 
-        // Role guard + ownership guard
         $role = strtolower((string) $viewer->role);
         abort_unless(in_array($role, ['teacher', 'admin'], true), 403, 'Only teachers/admins can resolve.');
+
         $comment = Comment::with('version.submission')->findOrFail($thread);
         abort_unless($this->canViewThread($viewer, $comment), 403, 'Access denied.');
 
@@ -485,7 +396,6 @@ class ThreadController extends Controller
             $comment->is_resolved = true;
             $comment->save();
 
-            // Optional audit event
             CommentEvent::create([
                 'comment_id'   => $comment->id,
                 'triggered_by' => $viewer->id,

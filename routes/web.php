@@ -5,11 +5,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 
-// For targeted CSRF bypass on TipTap AJAX
+// For targeted CSRF bypass on TipTap AJAX (used only where explicitly stated)
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken as FrameworkVerifyCsrf;
-
+use App\Http\Controllers\CheckpointStatusController; // NEW
 use App\Models\Teacher;
-
 use App\Http\Controllers\AuthController;  // Unified auth
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\AdminController;
@@ -24,6 +23,11 @@ use App\Http\Controllers\StudentStartController;
 // TipTap rich text API + Upload controller
 use App\Http\Controllers\Tok\RichTextController;
 use App\Http\Controllers\Tok\UploadController;
+// Persist PM positions
+use App\Http\Controllers\ThreadPositionsController;
+
+// ✅ NEW: Admin stages manager
+use App\Http\Controllers\Admin\CheckpointStageController;
 
 // Class-based role middleware (no alias)
 use App\Http\Middleware\EnsureRole;
@@ -174,6 +178,20 @@ Route::middleware(['web', EnsureRole::class . ':admin'])->group(function () {
 
     Route::post('admin/students/{student}/reset-password', [AdminStudentController::class, 'resetPassword'])
         ->name('admin.students.reset');
+
+    // ✅ Admin: Checkpoint Stages Manager (non-breaking, additive)
+    Route::prefix('admin/checkpoints/stages')
+        ->name('admin.stages.')
+        ->group(function () {
+            Route::get('/',            [CheckpointStageController::class, 'index'])->name('index');
+            Route::post('/',           [CheckpointStageController::class, 'store'])->name('store');
+            Route::patch('/{stage}',   [CheckpointStageController::class, 'update'])->name('update');
+            Route::delete('/{stage}',  [CheckpointStageController::class, 'destroy'])->name('destroy');
+
+            // helpers
+            Route::post('/{stage}/toggle',  [CheckpointStageController::class, 'toggle'])->name('toggle');
+            Route::post('/reorder',         [CheckpointStageController::class, 'reorder'])->name('reorder');
+        });
 });
 
 /*
@@ -185,11 +203,10 @@ Route::middleware(['web', EnsureRole::class . ':teacher,admin'])->group(function
     Route::post('/workspace/{type}/thread', [ThreadController::class, 'create'])
         ->whereIn('type', ['exhibition', 'essay'])
         ->name('thread.create');
-
-    Route::post('/workspace/{type}/thread/{thread}/status', [ThreadController::class, 'setStatus'])
-        ->whereIn('type', ['exhibition', 'essay'])
-        ->whereNumber('thread')
-        ->name('thread.status');
+        
+// ✅ Teacher/Admin: update a student's checkpoint stage
+    Route::post('/checkpoints/status', [CheckpointStatusController::class, 'update'])
+    ->name('checkpoints.status.update');
 
     // Resolve a thread (teacher/admin only)
     Route::post('/workspace/{type}/thread/{thread}/resolve', [ThreadController::class, 'resolve'])
@@ -238,6 +255,31 @@ Route::middleware(['web', EnsureRole::class . ':teacher,admin'])->group(function
             return 'Teacher activated: ' . $email . ' (Password reset if it was empty).';
         });
     }
+});
+
+/*
+|--------------------------------------------------------------------------
+| ✅ Tok thread positions (persist ProseMirror positions)
+|--------------------------------------------------------------------------
+| Session-auth; we also add a GET /api/threads/ping to verify this block is active.
+*/
+Route::middleware(['web', 'auth'])->group(function () {
+    // Quick probe to confirm this group is active (remove later if you want)
+    Route::get('/api/threads/ping', function () {
+        return response()->json([
+            'ok' => true,
+            'user' => optional(Auth::user())->only(['id', 'email', 'role']),
+        ]);
+    })->name('threads.ping');
+
+    // ✅ Persist ProseMirror positions for a thread
+    Route::patch(
+        '/api/threads/{thread}/positions',
+        [\App\Http\Controllers\ThreadPositionsController::class, 'update']
+    )
+        ->name('threads.positions.update')
+        ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+        ->whereNumber('thread');
 });
 
 /*

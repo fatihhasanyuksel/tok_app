@@ -24,6 +24,7 @@
     .pill .dot { min-width:18px; height:18px; padding:0 6px; display:inline-flex; align-items:center; justify-content:center; border-radius:999px; background:#0b6bd6; color:#fff; font-size:12px; }
 
     .thread-card { background:#fff; border:1px solid #ddd; border-radius:12px; padding:14px; }
+    .thread-card .muted { font-size: 14px; color: #777; display: inline-block; margin-top: 6px; line-height: 1.2; }
     .status-pill { font-size:12px; border:1px solid #dde; border-radius:999px; padding:2px 8px; text-transform:capitalize; }
     .bubble-list { display:flex; flex-direction:column; gap:10px; max-height:55vh; overflow:auto; padding:6px 10px; background:#f7f7f8; border:1px solid #eee; border-radius:10px; }
     .row { display:flex; width:100%; }
@@ -32,9 +33,22 @@
     .row .bubble { max-width:85%; padding:10px 12px; border-radius:14px; border:1px solid transparent; }
     .bubble.student { background:#f1f5f9; border-color:#e5eaf0; color:#222; }
     .bubble.teacher { background:#e8f1ff; border-color:#cfe0ff; color:#0a2e6c; }
-    .sel, .sel-quote{ margin-top:8px; background:#fff7a8; padding:8px 10px; border:1px solid #f2e38b; border-radius:8px; color:#333; font-size:13px; white-space:pre-wrap; }
-    .muted { color:#667085; }
-    .list { display:flex; flex-direction:column; gap:10px; }
+
+    .sel, .sel-quote {
+      margin-top:8px;
+      background:#fff7a8;
+      padding:4px 8px !important;
+      border:1px solid #f2e38b;
+      border-radius:8px;
+      color:#333;
+      font-size:13px;
+      white-space:pre-wrap;
+      text-indent:0 !important;
+      line-height:1.3;
+    }
+    .sel em.sel-q{ display:inline; font-style:italic; margin:0; padding:0; text-indent:0; pointer-events: none;}
+    .sel em.sel-q::before{ content:"\201C"; }
+    .sel em.sel-q::after { content:"\201D"; }
 
     /* History modal */
     #hist-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; z-index:10000; }
@@ -57,11 +71,22 @@
     .tt-wrap { border:1px solid #ddd; border-radius:8px; }
     .tt-editor { min-height:65vh; padding:10px; border-top:1px solid #ddd; border-radius:0 0 8px 8px; }
     .tt-editor:focus { outline:none; }
-
     .tt-editor img { max-width:100%; height:auto; border-radius:6px; }
 
     [hidden] { display:none !important; visibility:hidden !important; }
     #editor.force-hidden { display:none !important; }
+
+    /* --- TipTap highlight styling (only on active hover) --- */
+    .tok-range { background: transparent; border-bottom: 0; cursor: text; }
+    .tok-range--active {
+      background: rgba(255, 223, 109, 0.9);
+      box-shadow: inset 0 0 0 1px #ffcc33;
+      animation: tokFlash .9s ease-out;
+    }
+    @keyframes tokFlash {
+      0%   { box-shadow: inset 0 0 0 3px #ffcc33; }
+      100% { box-shadow: inset 0 0 0 0 rgba(0,0,0,0); }
+    }
   </style>
   <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 </head>
@@ -150,8 +175,6 @@
        x-init="boot()">
     <form method="POST" action="{{ route('workspace.save', $routeParamsBase) }}" style="margin-bottom:10px;">
       @csrf
-      <h2>Draft Editor</h2>
-
       <div class="tt-wrap">
         <div class="tt-toolbar" id="tt-toolbar">
           <select id="tt-heading" class="tt-sel" title="Heading">
@@ -208,7 +231,7 @@
           @if($isStaff)
             <button type="button"
                     class="btn secondary"
-                    @click="prepSelection()"
+                    @click="prepSelection"
                     title="Comment on selected text in student draft">💬 Comment Selection</button>
           @else
             <button type="button"
@@ -270,52 +293,69 @@
             <div class="list">
               @foreach ($threads as $t)
                 @php
-                  $resolved = (bool) ($t->is_resolved ?? false);
-                  $st = strtolower($t->status ?? 'open');
+    // Unified, safe thread status logic (no "Awaiting Reply")
+    $resolved = (bool) ($t->is_resolved ?? false);
 
-                  $colorMap = [
-                    'open'     => ['#e8f1ff', '#0a2e6c'],
-                    'seen'     => ['#e8f1ff', '#0a2e6c'],
-                    'revised'  => ['#fff4e5', '#8a5a00'],
-                    'approved' => ['#e6ffed', '#135f26'],
-                    'closed'   => ['#e6ffed', '#135f26'],
-                  ];
+    $label = 'Awaiting Teacher';
+    [$bg, $fg] = ['#fff4e5', '#8a5a00']; // amber (default)
 
-                  $uiMap = [
-                    'open'     => ['Awaiting Student', 'open'],
-                    'seen'     => ['Awaiting Student', 'open'],
-                    'revised'  => ['Awaiting Teacher', 'revised'],
-                    'closed'   => ['Resolved',         'closed'],
-                    'approved' => ['Resolved',         'closed'],
-                  ];
+    if ($resolved) {
+        $label = 'Resolved';
+        [$bg, $fg] = ['#e6ffed', '#135f26']; // green
+    } else {
+        try {
+            $lastMsg = \App\Models\CommentMessage::with('author:id,role')
+                ->where('comment_id', $t->id)
+                ->orderBy('created_at', 'desc')
+                ->first();
 
-                  if ($resolved) {
-                      $label = 'Resolved';
-                      [$bg, $fg] = $colorMap['closed'];
-                  } else {
-                      [$label, $colorKey] = $uiMap[$st] ?? [ucfirst($st), $st];
-                      [$bg, $fg] = $colorMap[$colorKey] ?? ['#f6f8ff', '#334'];
-                  }
-                @endphp
+            $lastRole = strtolower(optional(optional($lastMsg)->author)->role ?? '');
+            if (in_array($lastRole, ['teacher','admin'], true)) {
+                $label = 'Awaiting Student';
+                [$bg, $fg] = ['#e8f1ff', '#0a2e6c']; // blue
+            } else {
+                $label = 'Awaiting Teacher';
+                [$bg, $fg] = ['#fff4e5', '#8a5a00']; // amber
+            }
+        } catch (\Throwable $e) {
+            // Fallback already set
+        }
+    }
+@endphp
 
                 <div class="thread-card">
                   <div>
-                    <div style="font-weight:600;">
-                      Feedback
-                      @if(!empty($t->selection_text))
-                        <span class="muted">on “{{ \Illuminate\Support\Str::limit($t->selection_text, 60) }}”</span>
-                      @endif
-                      <span class="muted" title="{{ optional($t->created_at)->setTimezone('Asia/Dubai')->format('Y-m-d H:i') }}"> · {{ $t->created_at?->diffForHumans() }}</span>
-                    </div>
-
-                    <!-- status pill honors is_resolved first -->
                     <span class="status-pill" style="background:{{ $bg }}; color:{{ $fg }}; border-color:{{ $bg }}">
                       {{ $label }}
                     </span>
 
                     @if(!empty($t->selection_text))
-                      <div class="sel" style="margin-top:6px;"><em>“{{ \Illuminate\Support\Str::limit($t->selection_text, 140) }}”</em></div>
-                    @endif
+  @php
+    $raw = (string) ($t->selection_text ?? '');
+
+    // Normalize NBSPs to normal spaces (both literal U+00A0 and its UTF-8 bytes)
+    $raw = preg_replace('/\x{00A0}/u', ' ', $raw);
+    $raw = str_replace("\xC2\xA0", ' ', $raw);
+
+    // Decode entities (&quot; etc.) and collapse multiple spaces/tabs
+    $raw = html_entity_decode($raw, ENT_QUOTES, 'UTF-8');
+    $raw = preg_replace('/[ \t]+/u', ' ', $raw);
+
+    // Trim spaces + any received quotes from ends
+    $sel = trim($raw, " \t\n\r\0\x0B\xC2\xA0\"“”'");
+
+    // Limit for the card
+    $sel = \Illuminate\Support\Str::limit($sel, 140, '…');
+  @endphp
+
+  <div class="sel" data-thread-id="{{ $t->id }}" style="margin:6px 0; padding:4px 8px; text-indent:0; line-height:1.3;">
+    <em class="sel-q">{{ $sel }}</em>
+  </div>
+@endif
+
+                    <span class="muted" title="{{ optional($t->created_at)->setTimezone('Asia/Dubai')->format('Y-m-d H:i') }}">
+                      {{ $t->created_at?->diffForHumans() }}
+                    </span>
                   </div>
 
                   <div style="margin-top:10px;">
@@ -400,7 +440,7 @@ function hybridPane(){
 </script>
 
 <script>
-/* Messages + autosave + history (kept same structure; autosave now watches HTML mirror) */
+/* Messages + autosave + history (autosave made robust) */
 window.MSG = { type: '{{ $type }}', submissionId: {{ $submission->id }} };
 (function () {
   const panel   = document.getElementById('msg-panel');
@@ -408,44 +448,45 @@ window.MSG = { type: '{{ $type }}', submissionId: {{ $submission->id }} };
   const closeBt = document.getElementById('msg-close');
   const list    = document.getElementById('msg-list');
   const form    = document.getElementById('msg-form');
-  if (!panel || !toggle || !list || !form) return;
   const csrf = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
 
-  function fmtDubai(iso){ try{ if(!iso) return ''; return new Date(iso).toLocaleString('en-GB',{timeZone:'Asia/Dubai',hour12:false}); }catch(_){ return iso||''; } }
-  function ctx(){ return (window.MSG&&window.MSG.type&&window.MSG.submissionId)?{ok:true,type:window.MSG.type,sid:window.MSG.submissionId}:{ok:false}; }
-  async function fetchJSON(url){ const res=await fetch(url,{headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'}}); if(!res.ok) throw new Error('HTTP '+res.status); return res.json(); }
-  function render(messages){
-    if(!messages||!messages.length){ list.innerHTML='<p class="muted" style="margin:6px 0;">No messages yet.</p>'; return; }
-    list.innerHTML = messages.map(m=>{
-      const when=m.created_at?fmtDubai(m.created_at):'';
-      const body=(m.body||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
-      return `<div class="msg" style="border:1px solid #eee;border-radius:8px;padding:8px;margin:8px 0;">
-                <div style="color:#666;font-size:12px;margin-bottom:4px;" title="${m.created_at||''}">${when}</div>
-                <div>${body}</div>
-              </div>`;
-    }).join('');
-    list.scrollTop=list.scrollHeight;
-  }
-  async function loadMessages(){
-    const c=ctx();
-    if(!c.ok){ list.innerHTML='<p class="muted" style="margin:6px 0;">Open a workspace item to view messages.</p>'; form.style.display='none'; return; }
-    list.innerHTML='<p class="muted" style="margin:6px 0;">Loading…</p>';
-    try{ const data=await fetchJSON(`/workspace/${encodeURIComponent(c.type)}/general/${encodeURIComponent(c.sid)}`); render(data.messages||[]); form.style.display=''; }
-    catch(e){ console.error(e); list.innerHTML='<p class="muted" style="color:#b00; margin:6px 0;">Failed to load messages.</p>'; form.style.display='none'; }
-  }
-  async function send(body){
-    const c=ctx(); if(!c.ok) return;
-    const res=await fetch(`/workspace/${encodeURIComponent(c.type)}/general/${encodeURIComponent(c.sid)}`,{
-      method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf,'X-Requested-With':'XMLHttpRequest','Accept':'application/json'}, body:JSON.stringify({body})
-    });
-    if(!res.ok) throw new Error('HTTP '+res.status); return res.json();
-  }
-  toggle.addEventListener('click',(e)=>{ e.preventDefault(); if(panel.style.display==='none'||panel.style.display===''){ panel.style.display='block'; loadMessages(); } else { panel.style.display='none'; } });
-  closeBt.addEventListener('click',()=>{ panel.style.display='none'; });
-  form.addEventListener('submit', async (e)=>{ e.preventDefault(); const ta=form.querySelector('textarea[name="body"]'); const body=(ta.value||'').trim(); if(!body) return;
-    try{ await send(body); ta.value=''; await loadMessages(); }catch(err){ console.error(err); alert('Failed to send message.'); } });
+  if (panel && toggle && list && form) {
+    function fmtDubai(iso){ try{ if(!iso) return ''; return new Date(iso).toLocaleString('en-GB',{timeZone:'Asia/Dubai',hour12:false}); }catch(_){ return iso||''; } }
+    function ctx(){ return (window.MSG&&window.MSG.type&&window.MSG.submissionId)?{ok:true,type:window.MSG.type,sid:window.MSG.submissionId}:{ok:false}; }
+    async function fetchJSON(url){ const res=await fetch(url,{headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'}}); if(!res.ok) throw new Error('HTTP '+res.status); return res.json(); }
+    function render(messages){
+      if(!messages||!messages.length){ list.innerHTML='<p class="muted" style="margin:6px 0;">No messages yet.</p>'; return; }
+      list.innerHTML = messages.map(m=>{
+        const when=m.created_at?fmtDubai(m.created_at):'';
+        const body=(m.body||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+        return `<div class="msg" style="border:1px solid #eee;border-radius:8px;padding:8px;margin:8px 0;">
+                  <div style="color:#666;font-size:12px;margin-bottom:4px;" title="${m.created_at||''}">${when}</div>
+                  <div>${body}</div>
+                </div>`;
+      }).join('');
+      list.scrollTop=list.scrollHeight;
+    }
+    async function loadMessages(){
+      const c=ctx();
+      if(!c.ok){ list.innerHTML='<p class="muted" style="margin:6px 0;">Open a workspace item to view messages.</p>'; form.style.display='none'; return; }
+      list.innerHTML='<p class="muted" style="margin:6px 0;">Loading…</p>';
+      try{ const data=await fetchJSON(`/workspace/${encodeURIComponent(c.type)}/general/${encodeURIComponent(c.sid)}`); render(data.messages||[]); form.style.display=''; }
+      catch(e){ console.error(e); list.innerHTML='<p class="muted" style="color:#b00; margin:6px 0;">Failed to load messages.</p>'; form.style.display='none'; }
+    }
+    async function send(body){
+      const c=ctx(); if(!c.ok) return;
+      const res=await fetch(`/workspace/${encodeURIComponent(c.type)}/general/${encodeURIComponent(c.sid)}`,{
+        method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf,'X-Requested-With':'XMLHttpRequest','Accept':'application/json'}, body:JSON.stringify({body})
+      });
+      if(!res.ok) throw new Error('HTTP '+res.status); return res.json();
+    }
+    toggle.addEventListener('click',(e)=>{ e.preventDefault(); if(panel.style.display==='none'||panel.style.display===''){ panel.style.display='block'; loadMessages(); } else { panel.style.display='none'; } });
+    closeBt.addEventListener('click',()=>{ panel.style.display='none'; });
+    form.addEventListener('submit', async (e)=>{ e.preventDefault(); const ta=form.querySelector('textarea[name="body"]'); const body=(ta.value||'').trim(); if(!body) return;
+      try{ await send(body); ta.value=''; await loadMessages(); }catch(err){ console.error(err); alert('Failed to send message.'); } });
 
-  document.addEventListener('click',(evt)=>{ const topbar=document.getElementById('topbar'); const inside=topbar && topbar.contains(evt.target); if(!inside) panel.style.display='none'; });
+    document.addEventListener('click',(evt)=>{ const topbar=document.getElementById('topbar'); const inside=topbar && topbar.contains(evt.target); if(!inside) panel.style.display='none'; });
+  }
 
   const reqBtn=document.getElementById('req-feedback-btn');
   if(reqBtn){
@@ -471,10 +512,10 @@ window.MSG = { type: '{{ $type }}', submissionId: {{ $submission->id }} };
     });
   }
 
-  /* Autosave — watches HTML mirror */
+  /* Autosave — robust (flush on unload and before thread submit) */
   (function autosaveSetup(){
     const editorPlain = document.getElementById('editor');
-    const editorHtml  = document.getElementById('body_html');   // <-- unified id
+    const editorHtml  = document.getElementById('body_html');
     const badge=document.getElementById('autosave-status');
     if(!editorHtml||!badge) return;
 
@@ -488,12 +529,13 @@ window.MSG = { type: '{{ $type }}', submissionId: {{ $submission->id }} };
     function show(text){ badge.style.display=''; badge.textContent=text; }
     function hideSoon(){ setTimeout(()=>{ badge.style.display='none'; },1000); }
 
-    async function doSave(throttled=true){
+    async function doSave(throttled=true, opts={}) {
+      const { keepalive=false, force=false } = opts;
       if(inFlight){ queued=true; return; }
       const bodyHtml = editorHtml.value;
-      if(bodyHtml===lastSaved) return;
+      if(!force && bodyHtml===lastSaved) return;
 
-      if(throttled){
+      if(throttled && !force){
         const now=Date.now(), since=now-lastSaveTs;
         if(since<THROTTLE_MS){ queued=true; const wait=Math.max(THROTTLE_MS-since,1); if(timer) clearTimeout(timer); timer=setTimeout(()=>doSave(true),wait); return; }
       }
@@ -501,10 +543,21 @@ window.MSG = { type: '{{ $type }}', submissionId: {{ $submission->id }} };
       inFlight=true; show('Saving…');
       try{
         const payload = { html: bodyHtml, plain: editorPlain ? editorPlain.value : undefined };
-        const res=await fetch(autosaveUrl,{
-          method:'PATCH', headers:{'Content-Type':'application/json'}, credentials:'same-origin', body:JSON.stringify(payload)
-        });
-        if(!res.ok) throw new Error('HTTP '+res.status);
+        const json = JSON.stringify(payload);
+        let ok=false;
+
+        if (keepalive && navigator.sendBeacon) {
+          ok = navigator.sendBeacon(autosaveUrl, new Blob([json], { type: 'application/json' }));
+          if (!ok) {
+            const res = await fetch(autosaveUrl,{ method:'PATCH', headers:{'Content-Type':'application/json'}, body:json, credentials:'same-origin', keepalive:true });
+            ok = res.ok;
+          }
+        } else {
+          const res=await fetch(autosaveUrl,{ method:'PATCH', headers:{'Content-Type':'application/json'}, credentials:'same-origin', body:json });
+          ok = res.ok;
+        }
+
+        if(!ok) throw new Error('Autosave failed');
         lastSaved=bodyHtml; lastSaveTs=Date.now(); show('Saved'); hideSoon();
       }catch(e){ console.error(e); show('Save failed — will retry'); }
       finally{ inFlight=false; if(queued){ queued=false; setTimeout(()=>doSave(true),0); } }
@@ -514,8 +567,15 @@ window.MSG = { type: '{{ $type }}', submissionId: {{ $submission->id }} };
     editorHtml.addEventListener('input',scheduleSave);
     editorHtml.addEventListener('blur',()=>doSave(false));
     document.addEventListener('keydown',(e)=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){ e.preventDefault(); doSave(false); } });
-    document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') doSave(false); });
-    window.addEventListener('beforeunload',()=>{ doSave(false); });
+    document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') doSave(false,{keepalive:true,force:true}); });
+    window.addEventListener('beforeunload',()=>{ doSave(false,{keepalive:true,force:true}); });
+
+    // Force-save before thread submit (selection composer)
+    document.addEventListener('submit', (e) => {
+      if (e.target && e.target.closest('.sel-card')) {
+        try { doSave(false, { keepalive:true, force:true }); } catch(_) {}
+      }
+    });
   })();
 
   /* History modal (restore pushes TipTap HTML) */
@@ -526,7 +586,7 @@ window.MSG = { type: '{{ $type }}', submissionId: {{ $submission->id }} };
     const bodyEl=document.getElementById('hist-body');
     const onlyMs=document.getElementById('hist-only-milestones');
     const editorPlain=document.getElementById('editor');
-    const editorHtml=document.getElementById('body_html');      // <-- unified id
+    const editorHtml=document.getElementById('body_html');
     const csrf=(document.querySelector('meta[name="csrf-token"]')||{}).content||'';
     if(!btn||!backDrop||!closeBtn||!bodyEl) return;
 
@@ -606,8 +666,8 @@ window.MSG = { type: '{{ $type }}', submissionId: {{ $submission->id }} };
   import Placeholder     from 'https://esm.sh/@tiptap/extension-placeholder@2.6.6';
 
   const mount      = document.getElementById('rt-editor');
-  const hidden     = document.getElementById('editor');       // plain text mirror
-  const hiddenHtml = document.getElementById('body_html');    // HTML mirror (single source)
+  const hidden     = document.getElementById('editor');
+  const hiddenHtml = document.getElementById('body_html');
   const initialPlain = hidden?.value || '';
   const initialHtml  = (hiddenHtml?.value || '').trim();
   const csrf = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
@@ -768,6 +828,226 @@ window.MSG = { type: '{{ $type }}', submissionId: {{ $submission->id }} };
 
   reflectActive();
   document.getElementById('rt-editor').style.background = '#fff';
+</script>
+@php
+    $threadPayload = ($threads ?? collect())->map(function ($t) {
+        return [
+            'id'           => (int) ($t->id ?? 0),
+            'pm_from'      => isset($t->pm_from) ? (int) $t->pm_from : null,
+            'pm_to'        => isset($t->pm_to)   ? (int) $t->pm_to   : null,
+            'start_offset' => isset($t->start_offset) ? (int) $t->start_offset : null,
+            'end_offset'   => isset($t->end_offset)   ? (int) $t->end_offset   : null,
+        ];
+    })->values();
+@endphp
+
+<script>
+  window.TOK_THREADS = @json($threadPayload);
+</script>
+
+<script>
+  // Right pane hover → left highlight (works for list and open thread)
+  (function installTokHoverDelegation(){
+    function ready(){ return !!(window.TOK_HOVER); }
+
+    function bind(){
+      const right = document.querySelector('.right');
+      if (!right || !ready()) return;
+
+      // Mouseover: find nearest [data-thread-id] and activate
+      right.addEventListener('mouseover', (e) => {
+        const el = e.target.closest('[data-thread-id]');
+        if (!el || !right.contains(el)) return;
+        const id = Number(el.getAttribute('data-thread-id'));
+        if (id) window.TOK_HOVER.set(id);
+      });
+
+      // Mouseout: clear when the pointer leaves a [data-thread-id] element
+      right.addEventListener('mouseout', (e) => {
+        // Clear only when leaving the element that had the id
+        const el = e.target.closest('[data-thread-id]');
+        if (!el) return;
+        // If we moved to another descendant with the same id, keep it
+        const to = e.relatedTarget && right.contains(e.relatedTarget)
+          ? e.relatedTarget.closest('[data-thread-id]')
+          : null;
+        if (!to || to.getAttribute('data-thread-id') !== el.getAttribute('data-thread-id')) {
+          window.TOK_HOVER.clear();
+        }
+      });
+    }
+
+    // Try immediately and also after Alpine/AJAX updates
+    const tryBind = () => { try { bind(); } catch (_) {} };
+    document.addEventListener('DOMContentLoaded', tryBind);
+    setTimeout(tryBind, 0);
+    setTimeout(tryBind, 300);
+    document.addEventListener('alpine:initialized', tryBind);
+    document.addEventListener('alpine:updated', tryBind);
+  })();
+</script>
+
+<script type="module">
+  import { Plugin, PluginKey } from 'https://esm.sh/prosemirror-state@1.4.3';
+  import { Decoration, DecorationSet } from 'https://esm.sh/prosemirror-view@1.33.8';
+
+  const key = new PluginKey('tok-comments');
+
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+  function plainLen(doc, pos) { return doc.textBetween(0, pos, '\n', '\n').length; }
+  function offsetToPos(doc, targetLen) {
+    const maxPos = doc.content.size;
+    const maxLen = plainLen(doc, maxPos);
+    const t = Math.max(0, Math.min(targetLen ?? 0, maxLen));
+    let lo = 0, hi = maxPos, ans = 0;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      const L = plainLen(doc, mid);
+      if (L >= t) { ans = mid; hi = mid - 1; } else { lo = mid + 1; }
+    }
+    return ans;
+  }
+  async function persistPositions(threadId, pmFrom, pmTo) {
+    try {
+      await fetch(`/api/threads/${threadId}/positions`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({ pm_from: pmFrom, pm_to: pmTo }),
+      });
+    } catch (e) {
+      console.warn('Failed to persist PM positions', e);
+    }
+  }
+
+  // ONLY draw the active range (hovered from right pane)
+  function buildDecos(doc, items, activeId) {
+    if (!activeId) return DecorationSet.empty;
+    const it = (items || []).find(x => x && x.id === activeId);
+    if (!it || typeof it.pm_from !== 'number' || typeof it.pm_to !== 'number') return DecorationSet.empty;
+
+    const from = Math.max(0, Math.min(it.pm_from, doc.content.size));
+    const to   = Math.max(0, Math.min(it.pm_to, doc.content.size));
+    if (to <= from) return DecorationSet.empty;
+
+    return DecorationSet.create(doc, [
+      Decoration.inline(from, to, { class: 'tok-range tok-range--active' })
+    ]);
+  }
+
+  function TokCommentsPlugin(initialThreads) {
+    return new Plugin({
+      key,
+      state: {
+        init: (_cfg, state) => {
+          const seeded = (initialThreads || []).map((t) => {
+            let { id, pm_from, pm_to, start_offset, end_offset } = t;
+            if (typeof pm_from !== 'number' || typeof pm_to !== 'number') {
+              if (typeof start_offset === 'number' && typeof end_offset === 'number' && end_offset > start_offset) {
+                pm_from = offsetToPos(state.doc, start_offset);
+                pm_to   = offsetToPos(state.doc, end_offset);
+                persistPositions(id, pm_from, pm_to);
+              }
+            }
+            return { id, pm_from, pm_to };
+          });
+          return { items: seeded, decos: DecorationSet.empty, activeId: null };
+        },
+        apply: (tr, pluginState, _old, newState) => {
+          let { items, decos, activeId } = pluginState;
+
+          const meta = tr.getMeta(key);
+          if (meta && Object.prototype.hasOwnProperty.call(meta, 'activeId')) {
+            activeId = meta.activeId;
+          }
+
+          if (tr.docChanged || tr.mapping.maps.length) {
+            items = items.map((it) => {
+              if (typeof it.pm_from === 'number' && typeof it.pm_to === 'number') {
+                return {
+                  ...it,
+                  pm_from: tr.mapping.map(it.pm_from, 1),
+                  pm_to:   tr.mapping.map(it.pm_to,   -1),
+                };
+              }
+              return it;
+            });
+          }
+
+          // Rebuild only when necessary
+          if (tr.docChanged || (meta && 'activeId' in meta)) {
+            decos = buildDecos(newState.doc, items, activeId);
+          } else {
+            decos = decos.map(tr.mapping, tr.doc);
+          }
+
+          return { items, decos, activeId };
+        },
+      },
+      props: {
+        decorations(state) { return key.getState(state)?.decos || null; },
+      },
+    });
+  }
+
+  // --- bootstrap with TipTap instance --------------------------------------
+const ed = window.TIPTAP;
+if (!ed) {
+  console.error('TipTap editor not found (window.TIPTAP).');
+} else if (!window.TOK_THREADS) {
+  console.warn('TOK_THREADS not found; highlights will be empty.');
+} else {
+  ed.registerPlugin(TokCommentsPlugin(window.TOK_THREADS));
+
+  // Helpers for autoscroll-to-highlight
+  function getPluginState() {
+    try { return key.getState(ed.view.state) || null; } catch { return null; }
+  }
+  function getThreadById(id) {
+    const st = getPluginState();
+    if (!st || !Array.isArray(st.items)) return null;
+    return st.items.find(it => Number(it.id) === Number(id)) || null;
+  }
+  function scrollToRange(view, from, to) {
+    try {
+      const container = document.querySelector('.left');
+      if (!container) return;
+      if (typeof from !== 'number' || typeof to !== 'number') return;
+
+      const mid = Math.floor((from + to) / 2);
+      const maxPos = view.state.doc.content.size;
+      const safeMid = Math.max(1, Math.min(mid, maxPos - 1));
+      const coords = view.coordsAtPos(safeMid);
+
+      const cRect = container.getBoundingClientRect();
+      const currentTop = container.scrollTop;
+      const targetTop = currentTop + (coords.top - cRect.top) - (container.clientHeight / 2);
+
+      container.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+    } catch (e) {
+      console.warn('Autoscroll failed:', e);
+    }
+  }
+
+  // Public hover API for right pane (now with autoscroll)
+  window.TOK_HOVER = {
+    set(id) {
+      const view = ed.view;
+      view.dispatch(view.state.tr.setMeta(key, { activeId: id }));
+      const th = getThreadById(id);
+      if (th && typeof th.pm_from === 'number' && typeof th.pm_to === 'number') {
+        scrollToRange(view, th.pm_from, th.pm_to);
+      }
+    },
+    clear() {
+      const view = ed.view;
+      view.dispatch(view.state.tr.setMeta(key, { activeId: null }));
+    }
+  };
+}
 </script>
 </body>
 </html>

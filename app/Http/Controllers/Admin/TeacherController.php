@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Teacher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth; // ✅ added
 
 class TeacherController extends Controller
 {
@@ -68,14 +69,16 @@ class TeacherController extends Controller
         return redirect()->route('admin.teachers.index')->with('ok', 'Teacher updated.');
     }
 
-    public function destroy(Teacher $teacher, Request $request)
+    public function destroy(Teacher $teacher)
     {
-        // avoid deleting yourself
-        if ($teacher->id === $request->attributes->get('teacher')->id) {
-            return back()->with('ok', 'You cannot delete your own account.');
+        // ✅ Prevent deleting yourself (compare authenticated user email to teacher email)
+        $auth = Auth::user();
+        if ($auth && strcasecmp($auth->email, $teacher->email) === 0) {
+            return back()->withErrors(['delete' => 'You cannot delete your own teacher record while logged in.']);
         }
 
         $teacher->delete();
+
         return redirect()->route('admin.teachers.index')->with('ok', 'Teacher deleted.');
     }
 

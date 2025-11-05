@@ -30,7 +30,7 @@
 
     .thread-card{background:#fff; border:1px solid var(--border); border-radius:12px; padding:14px;}
     .thread-head{display:flex; justify-content:space-between; gap:8px; align-items:center; flex-wrap:wrap;}
-    .status{border:1px solid #dde; background:#f6f8ff; padding:3px 9px; border-radius:999px; font-size:12px; text-transform:capitalize;}
+    .status-pill{font-size:12px; border:1px solid #dde; border-radius:999px; padding:3px 9px; text-transform:capitalize;}
     .sel{color:#555; font-style:italic; margin-top:6px;}
 
     /* Messages area */
@@ -48,15 +48,9 @@
     .teacher .bubble{background:var(--teacher); border-color:var(--teacher-border);}
     .student .bubble{background:var(--student); border-color:var(--student-border);}
 
-    /* IMPORTANT: only the message text preserves newlines */
-    .bubble .msg{
-      white-space:pre-wrap;           /* preserve user newlines */
-      word-wrap:break-word;
-      display:block;
-    }
-    .bubble .meta{
-      display:block; font-size:12px; color:var(--muted); margin-top:3px;
-    }
+    /* Only the message text preserves newlines */
+    .bubble .msg{ white-space:pre-wrap; word-wrap:break-word; display:block; }
+    .bubble .meta{ display:block; font-size:12px; color:var(--muted); margin-top:3px; }
 
     /* Reply area */
     .reply{margin-top:10px;}
@@ -67,11 +61,6 @@
     .btn.sm{padding:6px 10px; border-radius:6px; font-size:14px;}
     .btn.ghost{background:#fff; color:#333; border:1px solid #ddd;}
     .btn:disabled{opacity:.5; cursor:not-allowed;}
-
-    /* Status buttons row */
-    .status-actions{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;}
-    .status-btn{padding:6px 10px; border-radius:8px; border:1px solid #e5e7eb; background:#fafafa; cursor:pointer; font-size:12px;}
-    .status-btn.is-active{ background:#e7f0ff; border-color:#cfe2ff; color:#0a2e6c; }
 
     .flash-ok{background:#e6ffed; border:1px solid #b7eb8f; padding:10px; margin:12px 0; border-radius:8px;}
 
@@ -93,7 +82,7 @@
   <div class="wrap">
     <!-- Left: editor -->
     <div class="left">
-      <h2>Draft Editor</h2>
+      <h2>Editor</h2>
       <form method="POST" action="{{ route('workspace.save', ['type'=>$type, 'student'=>$student->id]) }}">
         @csrf
         <textarea name="body">{{ strip_tags($latestVersion->body_html) }}</textarea>
@@ -106,7 +95,18 @@
       <h2 style="margin-top:0">Feedback Threads</h2>
 
       <div class="thread-card" id="threadCard">
-        <!-- Header + selection + live status -->
+        <!-- Header + selection + derived status -->
+        @php
+          $lastMsg      = $thread->messages->last();
+          $isStudentLast= $lastMsg && $lastMsg->author_id === $student->id;
+          if ($thread->is_resolved ?? false) {
+              $pillLabel = 'Resolved';
+              $pillBg = '#e6ffed'; $pillFg = '#135f26';
+          } else {
+              $pillLabel = $isStudentLast ? 'Awaiting Teacher' : 'Awaiting Student';
+              $pillBg = '#e8f1ff'; $pillFg = '#0a2e6c';
+          }
+        @endphp
         <div class="thread-head">
           <div>
             <div style="font-weight:700">Thread #{{ $thread->id }}</div>
@@ -116,20 +116,10 @@
           </div>
 
           <div style="display:flex;align-items:center;gap:10px;">
-            <span class="status" id="statusPill">{{ $thread->status ?? 'open' }}</span>
+            <span class="status-pill" style="background:{{ $pillBg }}; color:{{ $pillFg }}; border-color:{{ $pillBg }}">
+              {{ $pillLabel }}
+            </span>
           </div>
-        </div>
-
-        <!-- Status buttons (AJAX) -->
-        @php $statuses = ['open','seen','revised','approved','reopened','outdated']; @endphp
-        <div class="status-actions" id="statusButtons">
-          @foreach($statuses as $s)
-            <button type="button"
-                    class="status-btn {{ ($thread->status ?? 'open') === $s ? 'is-active' : '' }}"
-                    data-status="{{ $s }}">
-              {{ ucfirst($s) }}
-            </button>
-          @endforeach
         </div>
 
         <!-- Messages -->
@@ -206,59 +196,6 @@
         } catch(e) {}
       }
       setInterval(poll, 10000);
-    })();
-
-    // Status buttons (AJAX)
-    (function () {
-      const statusUrl = "{{ route('thread.status', ['type' => $type, 'thread' => $thread->id, 'student' => request('student')]) }}";
-      const pill = document.getElementById('statusPill');
-      const buttonsWrap = document.getElementById('statusButtons');
-      if (!buttonsWrap || !pill) return;
-
-      const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-
-      function setActive(status){
-        pill.textContent = status;
-        buttonsWrap.querySelectorAll('.status-btn').forEach(b => {
-          b.classList.toggle('is-active', b.dataset.status === status);
-          b.disabled = false;
-        });
-      }
-
-      buttonsWrap.addEventListener('click', async (e) => {
-        const btn = e.target.closest('.status-btn');
-        if (!btn) return;
-
-        const newStatus = btn.dataset.status;
-        if (btn.classList.contains('is-active')) return;
-
-        // Optimistic UI
-        buttonsWrap.querySelectorAll('.status-btn').forEach(b => b.disabled = true);
-        pill.textContent = newStatus;
-        btn.classList.add('is-active');
-
-        try {
-          const res = await fetch(statusUrl, {
-            method: 'POST',
-            headers: {
-              'X-CSRF-TOKEN': csrf,
-              'X-Requested-With': 'XMLHttpRequest',
-              'Accept': 'application/json',
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ status: newStatus })
-          });
-
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          const data = await res.json();
-          if (!data.ok) throw new Error(data.error || 'Update failed');
-
-          setActive(data.status);
-        } catch (err) {
-          alert('Could not update status. Please try again.');
-          setActive({{ json_encode($thread->status ?? 'open') }});
-        }
-      });
     })();
 
     // Typing indicator (lightweight polling)

@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;           // ✅ stages + meta lookups
 use App\Models\Teacher;
 use App\Models\Student;
+use App\Models\CheckpointStatus;            // ✅ Existing
 
 class StudentController extends Controller
 {
@@ -57,7 +59,47 @@ class StudentController extends Controller
             ->orderBy('first_name')
             ->paginate(20);
 
-        return view('students.index', compact('students'));
+        // ✅ Fetch checkpoint statuses only for the students on this page
+        $pageIds = $students->getCollection()->pluck('id'); // works with paginator
+        $statuses = $pageIds->isNotEmpty()
+            ? CheckpointStatus::whereIn('student_id', $pageIds)->get()->groupBy('student_id')
+            : collect();
+
+        // ✅ Load stages once here (no DB/model calls in Blade)
+        $stages = DB::table('checkpoint_stages')
+            ->select('key', 'label')
+            ->where('is_active', true)
+            ->orderByRaw('COALESCE(display_order, 9999)')
+            ->get();
+
+        // ✅ NEW: status meta (last updated + who) for each (student_id, type)
+        // Produces: $statusMeta[student_id][type] = ['status_code'=>..., 'selected_at'=>..., 'selected_by_name'=>...]
+        $metaRows = $pageIds->isNotEmpty()
+            ? DB::table('checkpoint_statuses as cs')
+                ->leftJoin('users as u', 'u.id', '=', 'cs.selected_by')
+                ->whereIn('cs.student_id', $pageIds)
+                ->select('cs.student_id', 'cs.type', 'cs.status_code', 'cs.selected_at', 'u.name as selected_by_name')
+                ->get()
+            : collect();
+
+        $statusMeta = $metaRows
+            ->groupBy('student_id')
+            ->map(function ($group) {
+                return $group->keyBy('type')->map(function ($row) {
+                    return [
+                        'status_code'      => $row->status_code,
+                        'selected_at'      => $row->selected_at,
+                        'selected_by_name' => $row->selected_by_name,
+                    ];
+                })->toArray();
+            })->toArray();
+
+        return view('students.index', [
+            'students'   => $students,
+            'statuses'   => $statuses,
+            'stages'     => $stages,     // ✅ for the dropdown partial
+            'statusMeta' => $statusMeta, // ✅ optional meta (“Updated … by …”)
+        ]);
     }
 
     public function create(Request $request)

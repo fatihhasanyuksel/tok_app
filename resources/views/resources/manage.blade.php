@@ -2,114 +2,98 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>ToK Resources — Manage</title>
+  <title>Manage ToK Resources</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <style>
-    :root { --bg:#f9fafb; --card:#fff; --border:#e5e7eb; --text:#111; --muted:#6b7280; --brand:#0a66ff; }
-    * { box-sizing: border-box; }
-    body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); color:var(--text); }
-    header { background:var(--brand); color:#fff; padding:14px 20px; display:flex; align-items:center; justify-content:space-between; }
-    header a { color:#fff; text-decoration:none; opacity:.9; }
-    header a:hover { opacity:1; text-decoration:underline; }
-    main { max-width:960px; margin: 20px auto; padding: 0 16px; }
-    .flash { margin-bottom:12px; padding:10px 12px; border-radius:8px; }
-    .ok { background:#e6ffed; border:1px solid #b7eb8f; }
-    .err { background:#fff1f2; border:1px solid #fecaca; }
-    .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,.04); }
-    h1 { margin:0 0 8px; }
-    .muted { color:var(--muted); }
-    .grid { display:grid; grid-template-columns: 1fr; gap:16px; }
-    @media (min-width: 800px) { .grid { grid-template-columns: 1fr 1fr; } }
-    .upload { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    .btn { background:var(--brand); color:#fff; border:0; border-radius:8px; padding:10px 14px; cursor:pointer; }
-    .btn.ghost { background:#fff; color:#111; border:1px solid var(--border); }
-    .list { margin-top:10px; border-top:1px solid var(--border); }
-    .row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); }
-    .name { font-weight:600; }
-    .meta { color:var(--muted); font-size:12px; }
-    .actions { display:flex; gap:8px; align-items:center; }
-    a.link { color:var(--brand); text-decoration:none; }
-    a.link:hover { text-decoration:underline; }
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#fff;color:#111;}
+    .top{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #eee;}
+    .wrap{max-width:1000px;margin:0 auto;padding:18px;}
+    .muted{color:#6b7280}
+    .section{border:1px solid #e5e7eb;border-radius:12px;padding:14px;background:#fff;margin-bottom:16px}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid #d0d7de;border-radius:8px;background:#f8fafc;color:#111;text-decoration:none;cursor:pointer}
+    .btn.danger{background:#fff2f0;border-color:#ffccc7;color:#a8071a}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{border:1px solid #e5e7eb;padding:10px;text-align:left;vertical-align:top}
+    th{background:#f8fafc}
+    code{background:#f6f8ff;border:1px solid #e5eaf0;border-radius:6px;padding:2px 6px}
   </style>
 </head>
 <body>
+  <div class="top">
+    <strong>Manage ToK Resources</strong>
+    <div class="row">
+      {{-- Back to role home (Students for teacher, Admin dashboard for admin) --}}
+      @if(auth()->check() && auth()->user()->role === 'admin')
+        <a class="btn" href="{{ route('admin.dashboard') }}">Admin dashboard</a>
+      @elseif(auth()->check() && auth()->user()->role === 'teacher')
+        <a class="btn" href="{{ route('students.index') }}">Students</a>
+      @endif>
 
-<header>
-  <div>ToK Resources — Manage</div>
-  <nav>
-    <a href="{{ route('resources.index') }}">View as student</a>
-  </nav>
-</header>
-
-<main>
-  @if(session('ok'))
-    <div class="flash ok">{{ session('ok') }}</div>
-  @endif
-  @if(session('error'))
-    <div class="flash err">{{ session('error') }}</div>
-  @endif
-  @if ($errors->any())
-    <div class="flash err">
-      <strong>Upload error:</strong>
-      <ul style="margin:6px 0 0 18px;">
-        @foreach ($errors->all() as $e)
-          <li>{{ $e }}</li>
-        @endforeach
-      </ul>
+      <a class="btn" href="{{ route('resources.index') }}">Public view</a>
+      <form method="POST" action="{{ route('logout') }}">
+        @csrf
+        <button class="btn" type="submit">Logout</button>
+      </form>
     </div>
-  @endif
+  </div>
 
-  <div class="grid">
-    <!-- Upload card -->
-    <section class="card">
-      <h1>Upload a file</h1>
-      <p class="muted" style="margin-top:0">Max 20 MB. PDFs, Docs, images, etc.</p>
-      <form class="upload" method="POST" action="{{ route('resources.upload') }}" enctype="multipart/form-data">
+  <div class="wrap">
+    @if(session('ok'))   <div class="section" style="border-color:#b7eb8f;background:#e6ffed">{{ session('ok') }}</div> @endif
+    @if(session('error'))<div class="section" style="border-color:#ffccc7;background:#fff2f0">{{ session('error') }}</div> @endif
+
+    <div class="section">
+      <h3 style="margin:0 0 8px">Upload resource</h3>
+      <form method="POST" action="{{ route('resources.upload') }}" enctype="multipart/form-data" class="row">
         @csrf
         <input type="file" name="file" required>
         <button class="btn" type="submit">Upload</button>
+        <span class="muted">Saved to <code>storage/app/public/tok/</code> → served at <code>/storage/tok/…</code></span>
       </form>
-    </section>
+      @error('file')
+        <div class="muted" style="color:#b00020;margin-top:6px;">{{ $message }}</div>
+      @enderror
+    </div>
 
-    <!-- Help / notes -->
-    <section class="card">
-      <h1>Tips</h1>
-      <ul style="margin:8px 0 0 18px;">
-        <li>Files are stored under <code>storage/app/public/tok</code> and served via <code>/storage/tok/…</code>.</li>
-        <li>Use clear names, e.g., <em>tok-essay-rubric-2025.pdf</em>.</li>
-        <li>Students see the list at <strong>/resources</strong>.</li>
-      </ul>
-    </section>
+    <div class="section">
+      <h3 style="margin:0 0 8px">Existing files</h3>
+      @if(empty($files))
+        <p class="muted">No files uploaded yet.</p>
+      @else
+        <table>
+          <thead>
+            <tr>
+              <th style="width:45%;">Name</th>
+              <th style="width:15%;">Size</th>
+              <th style="width:20%;">Updated</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach($files as $f)
+              <tr>
+                <td style="word-break:break-word">{{ $f['name'] }}</td>
+                <td>{{ $f['size'] }}</td>
+                <td class="muted">{{ $f['updated'] }}</td>
+                <td class="row">
+                  <a class="btn" href="{{ $f['url'] }}" target="_blank" rel="noopener">Open</a>
+                  <a class="btn" href="{{ $f['url'] }}" download>Download</a>
+
+                  {{-- Delete uses route param {filename}; controller sanitizes it --}}
+                  <form method="POST" action="{{ route('resources.destroy', ['filename' => $f['name']]) }}"
+                        onsubmit="return confirm('Delete {{ $f['name'] }}?');">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn danger">Delete</button>
+                  </form>
+                </td>
+              </tr>
+            @endforeach
+          </tbody>
+        </table>
+      @endif
+    </div>
   </div>
-
-  <!-- File list -->
-  <section class="card" style="margin-top:16px;">
-    <h1 style="margin-bottom:8px;">Files</h1>
-    @if(empty($files) || count($files) === 0)
-      <p class="muted">No files yet. Upload your first resource above.</p>
-    @else
-      <div class="list">
-        @foreach($files as $f)
-          <div class="row">
-            <div>
-              <div class="name"><a class="link" href="{{ $f['url'] }}" target="_blank" rel="noopener">{{ $f['name'] }}</a></div>
-              <div class="meta">{{ $f['size'] }} • updated {{ $f['updated'] }}</div>
-            </div>
-            <div class="actions">
-              <a class="btn ghost" href="{{ $f['url'] }}" target="_blank" rel="noopener">Open</a>
-              <form method="POST" action="{{ route('resources.destroy', ['filename' => $f['name']]) }}" onsubmit="return confirm('Delete {{ $f['name'] }}?')">
-                @csrf
-                @method('DELETE')
-                <button class="btn" type="submit">Delete</button>
-              </form>
-            </div>
-          </div>
-        @endforeach
-      </div>
-    @endif
-  </section>
-</main>
-
 </body>
 </html>
