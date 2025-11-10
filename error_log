@@ -1,0 +1,5 @@
+[08-Nov-2025 10:23:21 UTC] PHP Parse error:  syntax error, unexpected token "public" in app/Http/Controllers/FeedbackController.php on line 184
+[09-Nov-2025 11:28:47 UTC] PHP Parse error:  Unclosed '{' on line 18 in app/Http/Controllers/FeedbackController.php on line 732
+[09-Nov-2025 11:29:38 UTC] PHP Parse error:  Unclosed '{' on line 18 in app/Http/Controllers/FeedbackController.php on line 732
+[09-Nov-2025 11:30:08 UTC] PHP Parse error:  Unclosed '{' on line 18 in app/Http/Controllers/FeedbackController.php on line 732
+[09-Nov-2025 11:30:25 UTC] PHP Parse error:  Unclosed '{' on line 18 in app/Http/Controllers/FeedbackController.php on line 732

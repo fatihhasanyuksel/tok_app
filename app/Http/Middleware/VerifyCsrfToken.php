@@ -12,6 +12,8 @@ class VerifyCsrfToken extends Middleware
      * @var array<int, string>
      */
     protected $except = [
+        // --- TipTap autosave endpoints (allow sendBeacon without CSRF token) ---
         'api/tok/docs/*',
+        'api/tok/rev/docs/*',
     ];
 }

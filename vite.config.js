@@ -1,23 +1,27 @@
-import { defineConfig } from 'vite';
-import laravel from 'laravel-vite-plugin';
-import vue from '@vitejs/plugin-vue';
+import { defineConfig } from 'vite'
+import laravel from 'laravel-vite-plugin'
 
 export default defineConfig({
   plugins: [
     laravel({
-      input: ['resources/css/app.css', 'resources/js/app.js'],
+      input: [
+        'resources/css/app.css',
+        'resources/js/app.js',
+        'resources/css/workspace-v3.css',
+        'resources/js/workspace-v3.ts',
+      ],
       refresh: true,
     }),
-    vue(),
   ],
-  // ↓ Reduce memory for shared hosting builds
+  optimizeDeps: {
+    disabled: true,   // ← disable esbuild pre-bundling in dev
+  },
   build: {
-    minify: false,      // disable JS minification (esbuild)
-    cssMinify: false,   // disable CSS minification
-    target: 'es2018',   // lighter transforms
+    minify: false,
+    cssMinify: false,
+    target: 'es2018',
     rollupOptions: {
-      // avoid extra chunking to keep memory low
       output: { manualChunks: undefined },
     },
   },
-});
+})

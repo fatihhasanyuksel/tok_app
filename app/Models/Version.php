@@ -36,4 +36,10 @@ class Version extends Model
     {
         return $this->submission?->student();
     }
+
+    // ✅ New: who created this version (teacher/student/admin)
+    public function author()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'created_by');
+    }
 }

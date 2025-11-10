@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 use Mews\Purifier\Facades\Purifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,13 +16,16 @@ use App\Models\GeneralComment;
 
 class FeedbackController extends Controller
 {
+    /** Reuse everywhere */
+    private const TYPES = ['exhibition', 'essay', 'submission'];
+
     /**
      * GET /workspace/{type}
      * Renders the two-pane workspace and populates the right-pane thread list.
      */
     public function workspace(Request $request, string $type)
     {
-        abort_unless(in_array($type, ['exhibition','essay'], true), 404);
+        abort_unless(in_array($type, self::TYPES, true), 404);
 
         $viewer = Auth::user();
         if (!$viewer) return redirect('/login');
@@ -51,19 +56,25 @@ class FeedbackController extends Controller
                 'files_json'    => [],
             ]);
         }
+        
+        // Determine initial HTML for hydration
+        $initialHtml = (string) (
+            $submission->working_html
+            ?: ($latestVersion->body_html ?? '<p><em>Start writing…</em></p>')
+        );
 
         // Build thread list for the right pane (eager-load what the UI needs)
         $threads = \App\Models\Comment::whereHas('version', function ($q) use ($submission) {
                 $q->where('submission_id', $submission->id);
             })
             ->with([
-    'author:id,name',
-    // Important: let Eloquent select from comment_messages explicitly to avoid ambiguous columns
-    'latestMessage' => function ($q) {
-        $q->select('comment_messages.*');
-    },
-    'version.submission:id,student_id',
-])
+                'author:id,name',
+                // Avoid ambiguous columns in latestOfMany join
+                'latestMessage' => function ($q) {
+                    $q->select('comment_messages.*');
+                },
+                'version.submission:id,student_id',
+            ])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -73,119 +84,131 @@ class FeedbackController extends Controller
             ->latest()
             ->first();
 
-        return view('workspace', [
-            'type'          => $type,
-            'student'       => $student,
-            'submission'    => $submission,
-            'latestVersion' => $latestVersion,
-            'thread'        => null,
-            'threads'       => $threads,
-            'general'       => $general,
+        // Match via students.email -> teacher_id -> teachers.name
+        $studentEmail   = data_get($student, 'email');
+        $teacherId      = DB::table('students')->where('email', $studentEmail)->value('teacher_id');
+        $supervisorLabel = $teacherId
+            ? (DB::table('teachers')->where('id', $teacherId)->value('name') ?? 'Unassigned')
+            : 'Unassigned';
+
+        return view('workspace_v3', [
+            'type'            => $type,
+            'student'         => $student,
+            'submission'      => $submission,
+            'latestVersion'   => $latestVersion,
+            'thread'          => null,
+            'threads'         => $threads,
+            'general'         => $general,
+            'supervisorLabel' => $supervisorLabel,
+            'initialHtml'     => $initialHtml,
+            'role' => strtolower((string) ($viewer->role ?? Auth::user()->role ?? 'guest')),
         ]);
     }
 
+    // inside app/Http/Controllers/FeedbackController.php
+
     /**
      * POST /workspace/{type}/save
-     * - Autosave: updates working_body + working_html (no snapshot).
-     * - Manual save (button): creates a Version snapshot using TipTap HTML.
-     *   If "milestone" is checked (staff only), flags it as a milestone.
+     * Autosave (no snapshot) + revision handshake.
+     * - Client sends { autosave: true, submission_id, body, body_html, rev }
+     * - Server compares rev vs submissions.working_rev
+     *   - If mismatch: 409 + { expected: current_rev, submission_id, version_id }
+     *   - If match: update version, ++working_rev, return { ok, rev, submission_id, version_id, snapshot:false }
      */
     public function saveDraft(Request $request, string $type)
     {
-        abort_unless(in_array($type, ['exhibition','essay'], true), 404);
+        abort_unless(in_array($type, ['exhibition', 'essay'], true), 404);
 
-        $viewer = Auth::user();
-        if (!$viewer) return redirect('/login');
+        $user = $request->user();
+        abort_unless($user, 401);
 
-        // Resolve student (students → self, staff → ?student=)
-        if (strtolower((string) $viewer->role) === 'student') {
-            $student = $viewer;
-        } else {
-            $sid = (int) $request->query('student', 0);
-            $student = $sid > 0
-                ? User::where('id', $sid)->where('role', 'student')->first()
-                : null;
-            $student = $student ?: $viewer;
-        }
-
-        // Accept both fields; body_html may be absent on older forms
+        // Validate incoming payload
         $data = $request->validate([
-            'body'           => ['required','string','min:0'],
-            'body_html'      => ['sometimes','string'],
-            'milestone'      => ['sometimes','boolean'],
-            'milestone_note' => ['sometimes','nullable','string','max:140'],
+            'autosave'    => ['boolean'],
+            'submission_id' => ['nullable', 'integer', 'min:1'],
+            'body'        => ['nullable', 'string', 'max:100000'], // plain text, optional
+            'body_html'   => ['required', 'string'],               // TipTap HTML
+            'rev'         => ['nullable', 'integer', 'min:0'],
         ]);
+        
+        $isSnapshot = $request->boolean('snapshot');
 
-        $submission = Submission::firstOrCreate(
-            ['student_id' => $student->id, 'type' => $type],
-            ['status' => 'draft']
-        );
-
-        $isAutosave = (bool) $request->boolean('autosave');
-
-        // Pull both fields
-        $plain = (string) ($data['body'] ?? '');
-        $html  = (string) $request->input('body_html', '');
-
-        // If TipTap HTML wasn't sent (rare), build a minimal HTML fallback from plain
-        if ($html === '' && $plain !== '') {
-            $html = nl2br(e($plain), false);
+        // Resolve the student and submission
+        // Teachers may pass submission_id (authoritative). Students save their own.
+        if (strtolower((string) $user->role) === 'student') {
+            $studentId = (int) $user->id;
+            $submission = \App\Models\Submission::firstOrCreate(
+                ['student_id' => $studentId, 'type' => $type],
+                ['status' => 'draft', 'working_rev' => 1]
+            );
+        } else {
+            $sid = (int) ($data['submission_id'] ?? 0);
+            abort_if($sid <= 0, 404, 'Missing submission id.');
+            $submission = \App\Models\Submission::with('latestVersion')->findOrFail($sid);
         }
 
-        // AUTOSAVE → sanitize and mirror into working_* only
-        if ($isAutosave) {
-            $clean = Purifier::clean($html, 'tok');
-
-            $submission->working_html = $clean;
-            $submission->working_body = $this->htmlToPlain($clean);
-            $submission->save();
-
-            return $request->wantsJson()
-                ? response()->json(['ok' => true, 'mode' => 'autosave'])
-                : back()->with('ok', 'Autosaved.');
-        }
-
-        // MANUAL SAVE → sanitize and create a Version snapshot
-        $clean = Purifier::clean($html, 'tok');
-
-        // Build attributes for the new Version snapshot
-        $attrs = [
-            'submission_id' => $submission->id,
-            'body_html'     => $clean,
-            'files_json'    => [],
-        ];
-
-        // Only staff can mark milestones on manual save
-        $isStaff = in_array(strtolower((string)$viewer->role), ['teacher','admin'], true);
-        if ($isStaff && $request->boolean('milestone')) {
-            $attrs['is_milestone'] = true;
-            $note = trim((string) $request->input('milestone_note', ''));
-            if ($note !== '') {
-                $attrs['milestone_note'] = $note;
-            }
-        }
-
-        $version = Version::create($attrs);
-
-        // Keep editor in sync with what was just saved (store both HTML and plain)
-        $submission->working_html = $clean;
-        $submission->working_body = $this->htmlToPlain($clean);
-        $submission->save();
-
-        if ($request->wantsJson()) {
-            return response()->json([
-                'ok'             => true,
-                'mode'           => 'snapshot',
-                'version_id'     => $version->id,
-                'body_html'      => $version->body_html,
-                'body_plain'     => $this->htmlToPlain($version->body_html),
-                'created_at'     => $version->created_at,
-                'created_human'  => optional($version->created_at)->diffForHumans(),
-                'is_milestone'   => (bool) ($version->is_milestone ?? false),
-                'milestone_note' => $version->milestone_note ?? null,
+        // Ensure a version exists
+        $version = $submission->latestVersion()->first();
+        if (!$version) {
+            $version = \App\Models\Version::create([
+                'submission_id' => $submission->id,
+                'body_html'     => '<p><em>Start writing…</em></p>',
+                'files_json'    => [],
             ]);
         }
-        return back()->with('ok', 'Draft saved.');
+
+        // --- Revision handshake ---
+        $clientRev = (int) ($data['rev'] ?? 0);
+        $serverRev = (int) ($submission->working_rev ?? 1);
+
+        // If snapshot, persist a read-only version and return (do NOT bump working_rev)
+        if ($isSnapshot) {
+            $plain = strip_tags((string)($data['body_html'] ?? ''));
+            $summary = mb_substr(trim(preg_replace('/\s+/', ' ', $plain)), 0, 120);
+
+            $version = \App\Models\Version::create([
+                'submission_id' => $submission->id,
+                'body'          => (string)($data['body'] ?? ''),
+                'body_html'     => (string)($data['body_html'] ?? ''),
+                'summary'       => $summary,
+                'created_by'    => $user->id ?? null,
+            ]);
+
+            return response()->json([
+                'ok'            => true,
+                'snapshot'      => true,
+                'submission_id' => $submission->id,
+                'version_id'    => $version->id,
+                'rev'           => $serverRev, // unchanged
+            ]);
+        }
+
+        // If client is behind, ask them to sync (no write)
+        if ($clientRev !== $serverRev) {
+            return response()->json([
+                'ok'            => false,
+                'error'         => 'conflict',
+                'expected'      => $serverRev,
+                'submission_id' => $submission->id,
+                'version_id'    => $version->id,
+            ], 409);
+        }
+
+        // Update current working draft (no new Version snapshot here)
+        $version->body_html = (string) $data['body_html'];
+        $version->save();
+
+        // Bump working_rev after successful write
+        $submission->working_rev = $serverRev + 1;
+        $submission->save();
+
+        return response()->json([
+            'ok'            => true,
+            'rev'           => (int) $submission->working_rev,
+            'submission_id' => (int) $submission->id,
+            'version_id'    => (int) $version->id,
+            'snapshot'      => false,
+        ]);
     }
 
     /**
@@ -194,7 +217,7 @@ class FeedbackController extends Controller
      */
     public function history(Request $request, string $type)
     {
-        abort_unless(in_array($type, ['exhibition','essay']), true);
+        abort_unless(in_array($type, self::TYPES, true), 404);
 
         $viewer = Auth::user();
         if (!$viewer) return redirect('/login');
@@ -215,20 +238,24 @@ class FeedbackController extends Controller
             ['status' => 'draft']
         );
 
-        $versions = Version::where('submission_id', $submission->id)
-            ->orderBy('created_at','desc')
-            ->get()
-            ->map(function ($v) {
-                return [
-                    'id'               => $v->id,
-                    'created_at'       => $v->created_at,
-                    'created_at_human' => optional($v->created_at)->diffForHumans(),
-                    'body_html'        => $v->body_html,
-                    'body_plain'       => $this->htmlToPlain($v->body_html),
-                    'is_milestone'     => (bool) ($v->is_milestone ?? false),
-                    'milestone_note'   => $v->milestone_note ?? null,
-                ];
-            });
+$versions = Version::where('submission_id', $submission->id)
+    ->with('author:id,name,role')          // 👈 include who created the version
+    ->orderBy('created_at','desc')
+    ->get()
+    ->map(function ($v) {
+        $plain   = strip_tags((string)($v->body_html ?? ''));
+        $summary = mb_substr(trim(preg_replace('/\s+/', ' ', $plain)), 0, 120);
+
+        return [
+            'id'               => $v->id,
+            'created_at'       => $v->created_at,
+            'created_at_human' => optional($v->created_at)->diffForHumans(),
+            'body_html'        => $v->body_html,
+            'summary'          => $summary,
+            'by_role'          => strtolower(optional($v->author)->role ?? 'student'),
+            'by_name'          => (string) (optional($v->author)->name ?? 'Student'),
+        ];
+    });
 
         if ($request->wantsJson()) {
             return response()->json(['ok' => true, 'versions' => $versions]);
@@ -247,7 +274,7 @@ class FeedbackController extends Controller
      */
     public function restore(Request $request, string $type, int $version)
     {
-        abort_unless(in_array($type, ['exhibition','essay'], true), 404);
+        abort_unless(in_array($type, self::TYPES, true), 404);
 
         $viewer = Auth::user();
         if (!$viewer) return redirect('/login');
@@ -290,15 +317,10 @@ class FeedbackController extends Controller
     /**
      * GET /workspace/{type}/export
      * Staff-only: print-friendly HTML of the student's work.
-     * - latest *working* text preferred
-     * - version history with milestone badges
-     * - feedback threads with messages
-     * Add ?download=1 to force download.
-     * Add ?cache=1 to save a copy to storage/app/exports/.
      */
     public function export(Request $request, string $type)
     {
-        abort_unless(in_array($type, ['exhibition','essay'], true), 404);
+        abort_unless(in_array($type, self::TYPES, true), 404);
 
         $viewer = Auth::user();
         if (!$viewer) return redirect('/login');
@@ -345,15 +367,12 @@ class FeedbackController extends Controller
                 $q->where('submission_id', $submission->id);
             })
             ->with([
-    'author:id,name',
-    'messages' => function ($q) { $q->orderBy('created_at', 'asc'); },
-    'messages.author:id,name',
-    // Important: fully-qualify the select so latestOfMany join has no ambiguity
-    'latestMessage' => function ($q) {
-        $q->select('comment_messages.*');
-    },
-    'version.submission:id,student_id',
-])
+                'author:id,name',
+                'messages' => function ($q) { $q->orderBy('created_at', 'asc'); },
+                'messages.author:id,name',
+                'latestMessage' => function ($q) { $q->select('comment_messages.*'); },
+                'version.submission:id,student_id',
+            ])
             ->orderBy('created_at', 'asc')
             ->get();
 
@@ -506,49 +525,224 @@ class FeedbackController extends Controller
             ->header('Content-Disposition', $disposition . '; filename="' . $filename . '"');
     }
 
-    /**
-     * Helpers
-     */
-    private function plainToHtml(string $text): string
+    // -----------------------------------------------------------------------------
+    // Version preview
+    // -----------------------------------------------------------------------------
+    public function showVersion(Request $request, string $type, int $versionId)
     {
-        // Normalize newlines
-        $text = str_replace(["\r\n","\r"], "\n", $text);
-        // Split into paragraphs by blank line
-        $parts = preg_split('/\n{2,}/', trim($text), -1, PREG_SPLIT_NO_EMPTY) ?: [];
-        if (!$parts) return '<p></p>';
+        abort_unless(in_array($type, ['exhibition','essay'], true), 404);
 
-        $html = [];
-        foreach ($parts as $p) {
-            $p = e($p);
-            // Convert single newlines to <br> within a paragraph
-            $p = nl2br($p, false);
-            $html[] = "<p>{$p}</p>";
-        }
-        return implode("\n", $html);
-    }
+        $viewer = Auth::user();
+        if (!$viewer) return redirect('/login');
 
-    private function htmlToPlain(?string $html): string
-    {
-        if (!$html) return '';
+        $v = \App\Models\Version::with('submission:id,student_id,type')
+            ->where('id', $versionId)
+            ->firstOrFail();
 
-        // 1) Convert <br> to newlines so line breaks are preserved after stripping tags
-        $html = preg_replace('~<\s*br\s*/?\s*>~i', "\n", $html);
+        abort_unless(optional($v->submission)->type === $type, 404);
 
-        // 2) Decode HTML entities up to 2 passes
-        $decoded = $html;
-        for ($i = 0; $i < 2; $i++) {
-            $next = html_entity_decode($decoded, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            if ($next === $decoded) break;
-            $decoded = $next;
+        $student = null;
+        if ($v->submission && $v->submission->student_id) {
+            $student = \App\Models\User::find($v->submission->student_id);
         }
 
-        // 3) Strip tags
-        $plain = trim(strip_tags($decoded));
+        $title = 'Version #'.$v->id.' — '.ucfirst($type).' — '.($student->name ?? 'Student');
+        $esc = function ($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); };
 
-        // 4) Normalize whitespace: NBSP and CRLFs
-        $plain = str_replace("\xC2\xA0", ' ', $plain);
-        $plain = str_replace(["\r\n", "\r"], "\n", $plain);
+        return response()->make(
+            '<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>'.$esc($title).'</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#111;margin:24px;line-height:1.5}
+  h1{margin:0 0 12px}
+  .meta{color:#666;margin-bottom:12px}
+  .box{border:1px solid #e5e7eb;border-radius:12px;padding:16px;background:#fff}
+  .actions{margin:12px 0 20px;display:flex;gap:10px;align-items:center}
+  .btn{padding:8px 12px;border:1px solid #ddd;border-radius:10px;background:#fff;cursor:pointer}
+  @media print{a[href]::after{content:""} body{margin:0}}
+</style>
+</head>
+<body>
+  <h1>'.$esc($title).'</h1>
+  <div class="actions">
+    <button id="wk3-restore" class="btn">Restore this version</button>
+    <small id="wk3-restore-status" style="color:#666;"></small>
+  </div>
+  <div class="meta">Saved: '.($v->created_at ? $v->created_at->format('Y-m-d H:i') : '').'</div>
+  <div class="box">'.$v->body_html.'</div>
 
-        return $plain;
+  <script>
+  (function () {
+    var btn = document.getElementById("wk3-restore");
+    var status = document.getElementById("wk3-restore-status");
+    if (!btn) return;
+
+    btn.addEventListener("click", async function () {
+      if (!confirm("Restore this version over the working draft?")) return;
+      status.textContent = "Restoring…";
+
+      try {
+        const res = await fetch("/workspace/'. $type .'/restore/'. $v->id .'", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "X-Requested-With": "XMLHttpRequest",
+            "X-CSRF-TOKEN": "'. csrf_token() .'"
+          },
+          body: JSON.stringify({})
+        });
+
+        if (!res.ok) {
+          let msg = "";
+          try { msg = await res.text(); } catch (e) {}
+          status.textContent = "Error: " + (msg || ("HTTP " + res.status));
+          return;
+        }
+
+        status.textContent = "Restored. Redirecting…";
+        location.href = "/workspace/'. $type .'";
+      } catch (e) {
+        console.error(e);
+        status.textContent = "Network error";
+      }
+    });
+  })();
+  </script>
+</body>
+</html>',
+            200,
+            ['Content-Type' => 'text/html; charset=UTF-8']
+        );
     }
+    
+    public function compare(Request $request, string $type, int $versionId)
+{
+    abort_unless(in_array($type, ['exhibition','essay'], true), 404);
+
+    $viewer = Auth::user();
+    if (!$viewer) return redirect('/login');
+
+    // Left = chosen version (with submission to locate "current")
+    $left = \App\Models\Version::with('submission:id,student_id,type')
+        ->where('id', $versionId)
+        ->firstOrFail();
+
+    abort_unless(optional($left->submission)->type === $type, 404);
+
+    $submission = $left->submission;
+    $right = $submission ? $submission->latestVersion()->first() : null;
+
+    // Student name for title
+    $student = null;
+    if ($submission && $submission->student_id) {
+        $student = \App\Models\User::find($submission->student_id);
+    }
+
+    $title = 'Compare — '.ucfirst($type).' — '.($student->name ?? 'Student').' — #'.$left->id.' vs current';
+    $esc = function ($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); };
+    $csrf = csrf_token();
+
+    // Inline HTML (kept like your other inline renderers)
+    return response()->make(
+        '<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>'.$esc($title).'</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#111;margin:16px}
+  h1{margin:0 0 12px}
+  .meta{color:#666;margin-bottom:16px}
+  .actions{margin:10px 0 18px;display:flex;gap:10px;align-items:center}
+  .btn{padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .pane{border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff}
+  .pane h2{margin:0 0 8px;font-size:14px;color:#555}
+  .content{min-height:200px}
+  @media (max-width:900px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+  <h1>'.$esc($title).'</h1>
+  <div class="meta">Left = version #'.$left->id.' ('.$esc(optional($left->created_at)->format('Y-m-d H:i')).'), Right = current</div>
+
+  <div class="actions">
+    <button id="wk3-restore" class="btn">Restore this version</button>
+    <small id="wk3-restore-status" style="color:#666;"></small>
+  </div>
+
+  <div class="grid">
+    <div class="pane">
+      <h2>Version #'.$left->id.'</h2>
+      <div class="content">'.$left->body_html.'</div>
+    </div>
+    <div class="pane">
+      <h2>Current</h2>
+      <div class="content">'.($right?->body_html ?? '<em>No current version.</em>').'</div>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    var btn = document.getElementById("wk3-restore");
+    var status = document.getElementById("wk3-restore-status");
+    if (!btn) return;
+
+    btn.addEventListener("click", async function () {
+      if (!confirm("Restore this version over the working draft?")) return;
+      status.textContent = "Restoring…";
+
+      try {
+        const res = await fetch("/workspace/'. $type .'/restore/'. $left->id .'", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "X-Requested-With": "XMLHttpRequest",
+            "X-CSRF-TOKEN": "'.$csrf.'"
+          },
+          body: JSON.stringify({})
+        });
+
+        if (!res.ok) {
+          let msg = "";
+          try { msg = await res.text(); } catch (e) {}
+          status.textContent = "Error: " + (msg || ("HTTP " + res.status));
+          return;
+        }
+
+        status.textContent = "Restored. Redirecting…";
+        location.href = "/workspace/'. $type .'";
+      } catch (e) {
+        console.error(e);
+        status.textContent = "Network error";
+      }
+    });
+  })();
+  </script>
+</body>
+</html>',
+        200,
+        ['Content-Type' => 'text/html; charset=UTF-8']
+    );
+}
+private function htmlToPlain(string $html): string
+{
+    $s = preg_replace('~<\s*br\s*/?\s*>~i', "\n", $html);
+    $s = preg_replace('~</\s*(p|div|li|h[1-6]|blockquote)\s*>~i', "\n", $s);
+    $s = strip_tags($s);
+    $s = html_entity_decode($s, ENT_QUOTES, 'UTF-8');
+    $s = str_replace("\xC2\xA0", ' ', $s);
+    $s = preg_replace("/[ \t]+/", ' ', $s);
+    $s = preg_replace("/\r\n|\r|\n{3,}/", "\n\n", $s);
+    return trim($s);
+}
 }

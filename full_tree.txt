@@ -1,0 +1,1000 @@
+📂 .
+total 740
+drwxr-x---  17 australi nobody     4096 Nov  7 17:52 .
+drwx--x--x  38 australi australi   4096 Nov  7 17:47 ..
+drwxr-xr-x   8 australi australi   4096 Nov  5 09:06 app
+-rw-r--r--   1 australi australi    350 Jan 25  2025 artisan
+drwxrwxr-x   3 australi australi   4096 Nov  5 18:04 bootstrap
+drwxr-xr-x   2 australi australi   4096 Oct 20 15:59 cache
+drwxr-xr-x   2 australi australi   4096 Oct 20 15:48 cgi-bin
+-rw-r--r--   1 australi australi   2489 Nov  5 09:06 composer.json
+-rw-r--r--   1 australi australi 308498 Nov  5 09:06 composer.lock
+drwxr-xr-x   2 australi australi   4096 Nov  6 07:27 config
+drwxr-xr-x   5 australi australi   4096 Oct 20 15:59 database
+-rw-r--r--   1 australi australi    258 Jan 25  2025 .editorconfig
+-rw-r--r--   1 australi australi   2475 Nov  6 07:13 .env
+-rw-r--r--   1 australi australi   1099 Jan 25  2025 .env.example
+-rw-r--r--   1 australi australi    263 Oct 22 12:54 .env.testing
+-rw-r--r--   1 australi australi      7 Nov  7 17:52 full_tree.txt
+drwxr-xr-x   7 australi australi   4096 Nov  5 09:06 .git
+-rw-r--r--   1 australi australi    186 Jan 25  2025 .gitattributes
+-rw-r--r--   1 australi australi    453 Nov  5 09:06 .gitignore
+-rw-r--r--   1 australi australi      6 Oct 20 15:51 hello.txt
+-rw-r--r--   1 australi australi    740 Oct 20 17:24 .htaccess
+-rw-r--r--   1 australi australi      0 Nov  6 17:00 logs_2025-11-06_14-20.txt
+drwxr-xr-x 192 australi australi  12288 Nov  1 09:36 node_modules
+-rw-r--r--   1 australi australi   1052 Nov  1 09:36 package.json
+-rw-r--r--   1 australi australi 191577 Nov  1 09:36 package-lock.json
+-rw-r--r--   1 australi australi      0 Nov  5 09:06 php
+-rw-r--r--   1 australi australi   1229 Oct 22 14:11 .phpunit.result.cache
+-rw-r--r--   1 australi australi   1191 Jan 25  2025 phpunit.xml
+-rw-r--r--   1 australi australi     93 Jan 25  2025 postcss.config.js
+drwxr-x---   5 australi nobody     4096 Nov  5 09:06 public
+-rw-r--r--   1 australi australi    181 Nov  5 09:06 README.md
+drwxr-xr-x   5 australi australi   4096 Oct 20 15:59 resources
+drwxr-xr-x   2 australi australi   4096 Nov  6 07:47 routes
+drwxrwxr-x   5 australi australi   4096 Oct 20 15:59 storage
+-rw-r--r--   1 australi australi  24039 Nov  7 17:51 structure.txt
+-rw-r--r--   1 australi australi    551 Jan 25  2025 tailwind.config.js
+drwxr-xr-x   4 australi australi   4096 Oct 20 15:59 tests
+drwxr-xr-x  42 australi australi   4096 Nov  1 23:21 vendor
+-rw-r--r--   1 australi australi    631 Nov  1 09:35 vite.config.js
+drwxr-xr-x   3 australi australi   4096 Oct 20 15:50 .well-known
+
+📂 ./.well-known
+total 12
+drwxr-xr-x  3 australi australi 4096 Oct 20 15:50 .
+drwxr-x--- 17 australi nobody   4096 Nov  7 17:52 ..
+drwxr-xr-x  2 australi australi 4096 Oct 20 15:50 acme-challenge
+
+📂 ./.well-known/acme-challenge
+total 8
+drwxr-xr-x 2 australi australi 4096 Oct 20 15:50 .
+drwxr-xr-x 3 australi australi 4096 Oct 20 15:50 ..
+
+📂 ./cgi-bin
+total 8
+drwxr-xr-x  2 australi australi 4096 Oct 20 15:48 .
+drwxr-x--- 17 australi nobody   4096 Nov  7 17:52 ..
+
+📂 ./database
+total 116
+drwxr-xr-x  5 australi australi  4096 Oct 20 15:59 .
+drwxr-x--- 17 australi nobody    4096 Nov  7 17:52 ..
+-rw-r--r--  1 australi australi 86016 Oct 15 15:52 database.sqlite
+drwxr-xr-x  2 australi australi  4096 Nov  5 09:06 factories
+-rw-r--r--  1 australi australi    10 Jan 25  2025 .gitignore
+drwxr-xr-x  3 australi australi  4096 Nov  6 07:07 migrations
+drwxr-xr-x  2 australi australi  4096 Nov  5 09:06 seeders
+
+📂 ./database/migrations
+total 324
+drwxr-xr-x 3 australi australi 4096 Nov  6 07:07 .
+drwxr-xr-x 5 australi australi 4096 Oct 20 15:59 ..
+-rw-r--r-- 1 australi australi 1473 Jan 25  2025 0001_01_01_000000_create_users_table.php
+-rw-r--r-- 1 australi australi  849 Jan 25  2025 0001_01_01_000001_create_cache_table.php
+-rw-r--r-- 1 australi australi 1812 Jan 25  2025 0001_01_01_000002_create_jobs_table.php
+-rw-r--r-- 1 australi australi  835 Oct 21 09:18 2025_01_01_000001_create_submissions_table.php
+-rw-r--r-- 1 australi australi  742 Oct 21 09:18 2025_01_01_000002_create_versions_table.php
+-rw-r--r-- 1 australi australi  922 Oct 22 13:26 2025_01_02_000001_create_comments_table.php
+-rw-r--r-- 1 australi australi 1098 Oct 21 09:52 2025_01_02_000002_create_comment_anchors_table.php
+-rw-r--r-- 1 australi australi  877 Oct 21 09:55 2025_01_02_000003_create_comment_messages_table.php
+-rw-r--r-- 1 australi australi  859 Oct 21 09:56 2025_01_02_000004_create_comment_events_table.php
+-rw-r--r-- 1 australi australi  894 Oct 23 10:26 2025_01_02_000005_create_general_comments_table.php
+-rw-r--r-- 1 australi australi  897 Oct 21 10:23 2025_01_02_000006_create_student_moods_table.php
+-rw-r--r-- 1 australi australi  591 Oct 20 16:34 2025_10_20_163105_create_reflections_table.php
+-rw-r--r-- 1 australi australi  810 Oct 20 18:22 2025_10_20_181749_create_students_table.php
+-rw-r--r-- 1 australi australi  807 Oct 20 18:23 2025_10_20_181802_add_student_id_to_reflections_table.php
+-rw-r--r-- 1 australi australi  762 Oct 20 19:05 2025_10_20_185921_add_parent_contacts_to_students_table.php
+-rw-r--r-- 1 australi australi  536 Oct 20 19:04 2025_10_20_190455_drop_class_and_year_from_students_table.php
+-rw-r--r-- 1 australi australi  735 Oct 21 03:53 2025_10_21_035047_create_teachers_table.php
+-rw-r--r-- 1 australi australi  613 Oct 21 06:22 2025_10_21_062122_add_teacher_id_to_students_table.php
+-rw-r--r-- 1 australi australi  524 Oct 21 06:47 2025_10_21_064615_add_is_admin_to_teachers_table.php
+-rw-r--r-- 1 australi australi 1967 Oct 22 11:05 2025_10_22_110417_add_min_fields_to_reflections_table.php
+-rw-r--r-- 1 australi australi 1248 Oct 24 09:05 2025_10_23_102425_create_general_message_reads_table.php
+-rw-r--r-- 1 australi australi 1182 Oct 24 09:04 2025_10_23_102425_create_general_messages_table.php
+-rw-r--r-- 1 australi australi 1235 Oct 26 15:47 2025_10_24_000001_add_role_to_users_table.php
+-rw-r--r-- 1 australi australi 2270 Oct 26 15:45 2025_10_26_000001_add_teacher_id_to_users_table.php
+-rw-r--r-- 1 australi australi 1135 Oct 28 08:25 2025_10_28_082430_add_working_draft_to_submissions_table.php
+-rw-r--r-- 1 australi australi  794 Oct 28 22:41 2025_10_28_223954_add_parent_contacts_columns_to_students_table.php
+-rw-r--r-- 1 australi australi  659 Oct 29 09:10 2025_10_29_090858_add_milestone_fields_to_versions_table.php
+-rw-r--r-- 1 australi australi 1577 Nov  1 08:54 2025_11_01_125136_create_rich_text_blocks_table.php
+-rw-r--r-- 1 australi australi  764 Nov  1 22:20 2025_11_02_021943_add_working_html_to_submissions_table.php
+-rw-r--r-- 1 australi australi  613 Nov  5 09:06 2025_11_02_144701_add_is_resolved_to_comment_threads.php
+-rw-r--r-- 1 australi australi  881 Nov  5 09:06 2025_11_02_201654_drop_status_from_comments_table.php
+-rw-r--r-- 1 australi australi 1377 Nov  5 09:06 2025_11_03_101024_add_pm_positions_to_threads.php
+-rw-r--r-- 1 australi australi 1325 Nov  5 09:06 2025_11_03_102844_create_threads_table.php
+-rw-r--r-- 1 australi australi 1917 Nov  5 09:06 2025_11_03_132000_add_positions_to_comments_table.php
+-rw-r--r-- 1 australi australi 1189 Nov  5 09:06 2025_11_03_195242_create_checkpoint_statuses_table.php
+-rw-r--r-- 1 australi australi 1049 Nov  5 09:06 2025_11_03_195243_create_checkpoint_deadlines_table.php
+-rw-r--r-- 1 australi australi  753 Nov  5 09:06 2025_11_03_221710_create_checkpoint_stages_table.php
+-rw-r--r-- 1 australi australi  659 Nov  5 09:06 2025_11_04_012145_add_unique_index_to_checkpoint_statuses.php
+-rw-r--r-- 1 australi australi  947 Nov  6 04:23 2025_11_06_082227_add_working_rev_to_submissions_table.php
+drwxr-xr-x 2 australi australi 4096 Oct 22 13:44 DISABLED
+
+📂 ./database/migrations/DISABLED
+total 48
+drwxr-xr-x 2 australi australi 4096 Oct 22 13:44 .
+drwxr-xr-x 3 australi australi 4096 Nov  6 07:07 ..
+-rw-r--r-- 1 australi australi  922 Oct 22 13:27 2025_10_21_000100_create_comments_table.php
+-rw-r--r-- 1 australi australi  920 Oct 21 15:05 2025_10_21_000200_create_comment_anchors_table.php
+-rw-r--r-- 1 australi australi  724 Oct 21 15:05 2025_10_21_000300_create_comment_messages_table.php
+-rw-r--r-- 1 australi australi  789 Oct 21 15:06 2025_10_21_000400_create_comment_events_table.php
+-rw-r--r-- 1 australi australi  789 Oct 21 15:06 2025_10_21_000500_create_general_comments_table.php
+
+📂 ./database/factories
+total 40
+drwxr-xr-x 2 australi australi 4096 Nov  5 09:06 .
+drwxr-xr-x 5 australi australi 4096 Oct 20 15:59 ..
+-rw-r--r-- 1 australi australi  990 Nov  5 09:06 CheckpointDeadlineFactory.php
+-rw-r--r-- 1 australi australi 1225 Nov  5 09:06 CheckpointStatusFactory.php
+-rw-r--r-- 1 australi australi  889 Oct 22 13:47 TeacherFactory.php
+-rw-r--r-- 1 australi australi 1075 Jan 25  2025 UserFactory.php
+
+📂 ./database/seeders
+total 56
+drwxr-xr-x 2 australi australi 4096 Nov  5 09:06 .
+drwxr-xr-x 5 australi australi 4096 Oct 20 15:59 ..
+-rw-r--r-- 1 australi australi  520 Oct 22 13:58 AdminTeacherSeeder.php
+-rw-r--r-- 1 australi australi 1146 Nov  5 09:06 CheckpointDeadlinesSeeder.php
+-rw-r--r-- 1 australi australi 1053 Nov  5 09:06 CheckpointStagesSeeder.php
+-rw-r--r-- 1 australi australi  714 Nov  5 09:06 CheckpointStatusesSeeder.php
+-rw-r--r-- 1 australi australi  612 Nov  5 09:06 DatabaseSeeder.php
+-rw-r--r-- 1 australi australi  901 Oct 21 07:17 TeacherSeeder.php
+
+📂 ./resources
+total 20
+drwxr-xr-x  5 australi australi 4096 Oct 20 15:59 .
+drwxr-x--- 17 australi nobody   4096 Nov  7 17:52 ..
+drwxr-xr-x  2 australi australi 4096 Nov  5 09:06 css
+drwxr-xr-x  3 australi australi 4096 Nov  1 09:26 js
+drwxr-xr-x  8 australi australi 4096 Nov  7 17:31 views
+
+📂 ./resources/views
+total 176
+drwxr-xr-x 8 australi australi  4096 Nov  7 17:31 .
+drwxr-xr-x 5 australi australi  4096 Oct 20 15:59 ..
+drwxr-xr-x 6 australi australi  4096 Nov  5 09:06 admin
+drwxr-xr-x 2 australi australi  4096 Nov  5 09:06 auth
+drwxr-xr-x 2 australi australi  4096 Oct 23 11:43 general-messages
+-rw-r--r-- 1 australi australi    84 Oct 20 16:04 home.blade.php
+-rw-r--r-- 1 australi australi  6582 Nov  5 09:06 layout.blade.php
+drwxr-xr-x 3 australi australi  4096 Nov  5 09:06 partials
+drwxr-xr-x 2 australi australi  4096 Nov  5 09:06 resources
+-rw-r--r-- 1 australi australi     0 Oct 22 04:33 student_dashboard.blade.php
+drwxr-xr-x 2 australi australi  4096 Nov  5 09:06 students
+-rw-r--r-- 1 australi australi   212 Nov  1 10:26 tiptap-test.blade.php
+-rw-r--r-- 1 australi australi 41424 Jan 25  2025 welcome.blade.php
+-rw-r--r-- 1 australi australi 51624 Nov  7 17:31 workspace.blade.php
+-rw-r--r-- 1 australi australi 10102 Nov  5 09:06 workspace_thread.blade.php
+
+📂 ./resources/views/partials
+total 36
+drwxr-xr-x 3 australi australi 4096 Nov  5 09:06 .
+drwxr-xr-x 8 australi australi 4096 Nov  7 17:31 ..
+drwxr-xr-x 2 australi australi 4096 Nov  5 09:06 checkpoints
+-rw-r--r-- 1 australi australi 5362 Nov  5 09:06 thread.blade.php
+-rw-r--r-- 1 australi australi 4636 Oct 28 20:15 thread_messages.blade.php
+
+📂 ./resources/views/partials/checkpoints
+total 20
+drwxr-xr-x 2 australi australi 4096 Nov  5 09:06 .
+drwxr-xr-x 3 australi australi 4096 Nov  5 09:06 ..
+-rw-r--r-- 1 australi australi 4353 Nov  5 09:06 stage-dropdown.blade.php
+
+📂 ./resources/views/resources
+total 28
+drwxr-xr-x 2 australi australi 4096 Nov  5 09:06 .
+drwxr-xr-x 8 australi australi 4096 Nov  7 17:31 ..
+-rw-r--r-- 1 australi australi 2755 Nov  5 09:06 index.blade.php
+-rw-r--r-- 1 australi australi 4322 Nov  5 09:06 manage.blade.php
+
+📂 ./resources/views/admin
+total 40
+drwxr-xr-x 6 australi australi 4096 Nov  5 09:06 .
+drwxr-xr-x 8 australi australi 4096 Nov  7 17:31 ..
+drwxr-xr-x 3 australi australi 4096 Nov  5 09:06 checkpoints
+-rw-r--r-- 1 australi australi  692 Oct 25 17:39 dashboard.blade.php
+drwxr-xr-x 2 australi australi 4096 Nov  5 09:06 students
+drwxr-xr-x 2 australi australi 4096 Nov  5 09:06 teachers
+-rw-r--r-- 1 australi australi 2346 Oct 25 10:49 transfer.blade.php
+drwxr-xr-x 2 australi australi 4096 Oct 25 09:04 views
+
+📂 ./resources/views/admin/teachers
+total 32
+drwxr-xr-x 2 australi australi 4096 Nov  5 09:06 .
+drwxr-xr-x 6 australi australi 4096 Nov  5 09:06 ..
+-rw-r--r-- 1 australi australi 2514 Nov  5 09:06 create.blade.php
+-rw-r--r-- 1 australi australi 2656 Nov  5 09:06 edit.blade.php
+-rw-r--r-- 1 australi australi 2157 Nov  5 09:06 index.blade.php
+
+📂 ./resources/views/admin/checkpoints
+total 12
+drwxr-xr-x 3 australi australi 4096 Nov  5 09:06 .
+drwxr-xr-x 6 australi australi 4096 Nov  5 09:06 ..
+drwxr-xr-x 2 australi australi 4096 Nov  5 09:06 stages
+
+📂 ./resources/views/admin/checkpoints/stages
+total 20
+drwxr-xr-x 2 australi australi 4096 Nov  5 09:06 .
+drwxr-xr-x 3 australi australi 4096 Nov  5 09:06 ..
+-rw-r--r-- 1 australi australi 4835 Nov  5 09:06 index.blade.php
+
+📂 ./resources/views/admin/students
+total 36
+drwxr-xr-x 2 australi australi 4096 Nov  5 09:06 .
+drwxr-xr-x 6 australi australi 4096 Nov  5 09:06 ..
+-rw-r--r-- 1 australi australi 2426 Oct 28 23:02 create.blade.php
+-rw-r--r-- 1 australi australi 3885 Oct 28 23:06 edit.blade.php
+-rw-r--r-- 1 australi australi 4787 Nov  5 09:06 index.blade.php
+
+📂 ./resources/views/admin/views
+total 16
+drwxr-xr-x 2 australi australi 4096 Oct 25 09:04 .
+drwxr-xr-x 6 australi australi 4096 Nov  5 09:06 ..
+-rw-r--r-- 1 australi australi  670 Oct 25 09:04 index.blade.php
+
+📂 ./resources/views/general-messages
+total 16
+drwxr-xr-x 2 australi australi 4096 Oct 23 11:43 .
+drwxr-xr-x 8 australi australi 4096 Nov  7 17:31 ..
+-rw-r--r-- 1 australi australi 2913 Oct 23 11:43 index.blade.php
+
+📂 ./resources/views/auth
+total 20
+drwxr-xr-x 2 australi australi 4096 Nov  5 09:06 .
+drwxr-xr-x 8 australi australi 4096 Nov  7 17:31 ..
+-rw-r--r-- 1 australi australi 4728 Nov  5 09:06 login.blade.php
+
+📂 ./resources/views/students
+total 44
+drwxr-xr-x 2 australi australi 4096 Nov  5 09:06 .
+drwxr-xr-x 8 australi australi 4096 Nov  7 17:31 ..
+-rw-r--r-- 1 australi australi  704 Oct 20 18:47 create.blade.php
+-rw-r--r-- 1 australi australi 1720 Oct 28 21:12 dashboard.blade.php
+-rw-r--r-- 1 australi australi  884 Oct 20 19:11 edit.blade.php
+-rw-r--r-- 1 australi australi 8188 Nov  5 09:06 index.blade.php
+
+📂 ./resources/js
+total 28
+drwxr-xr-x 3 australi australi 4096 Nov  1 09:26 .
+drwxr-xr-x 5 australi australi 4096 Oct 20 15:59 ..
+-rw-r--r-- 1 australi australi 1374 Nov  1 09:25 app.js
+-rw-r--r-- 1 australi australi  127 Jan 25  2025 bootstrap.js
+drwxr-xr-x 2 australi australi 4096 Nov  1 10:34 components
+
+📂 ./resources/js/components
+total 20
+drwxr-xr-x 2 australi australi 4096 Nov  1 10:34 .
+drwxr-xr-x 3 australi australi 4096 Nov  1 09:26 ..
+-rw-r--r-- 1 australi australi 4496 Nov  1 10:34 RichEditor.vue
+
+📂 ./resources/css
+total 16
+drwxr-xr-x 2 australi australi 4096 Nov  5 09:06 .
+drwxr-xr-x 5 australi australi 4096 Oct 20 15:59 ..
+-rw-r--r-- 1 australi australi  271 Nov  5 09:06 app.css
+
+📂 ./public
+total 124
+drwxr-x---  5 australi nobody    4096 Nov  5 09:06 .
+drwxr-x--- 17 australi nobody    4096 Nov  7 17:52 ..
+-rw-r--r--  1 australi australi   527 Oct 20 18:16 artisan-web.php
+drwxr-xr-x  3 australi australi  4096 Nov  1 10:01 build
+drwxr-xr-x  4 australi australi  4096 Nov  1 23:21 cache
+drwxr-xr-x  2 australi australi  4096 Nov  5 09:06 css
+-rw-r--r--  1 australi australi 74784 Nov  5 09:06 error_log
+-rw-r--r--  1 australi australi     0 Oct 20 17:24 favicon.ico
+-rw-r--r--  1 australi australi   468 Oct 20 17:24 index.php
+-rw-r--r--  1 australi australi    24 Oct 20 17:24 robots.txt
+lrwxrwxrwx  1 australi australi    41 Nov  5 09:06 storage -> /home/australi/tok_app/storage/app/public
+
+📂 ./public/build
+total 20
+drwxr-xr-x 3 australi australi 4096 Nov  1 10:01 .
+drwxr-x--- 5 australi nobody   4096 Nov  5 09:06 ..
+drwxr-xr-x 2 australi australi 4096 Nov  1 10:43 assets
+-rw-r--r-- 1 australi australi  326 Nov  1 10:43 manifest.json
+
+📂 ./public/build/assets
+total 3148
+drwxr-xr-x 2 australi australi    4096 Nov  1 10:43 .
+drwxr-xr-x 3 australi australi    4096 Nov  1 10:01 ..
+-rw-r--r-- 1 australi australi 1020478 Nov  1 10:43 app-Bu2vWf-g.js
+-rw-r--r-- 1 australi australi     680 Nov  1 10:43 app-C-fX46Yd.css
+-rw-r--r-- 1 australi australi 1113122 Nov  1 10:01 app-CXV4WtYS.js
+-rw-r--r-- 1 australi australi     664 Nov  1 10:38 app-DqQeuThW.css
+-rw-r--r-- 1 australi australi      59 Nov  1 10:43 app-gYQQDZX0.css
+-rw-r--r-- 1 australi australi     559 Nov  1 10:01 app-jMoBaXNh.css
+-rw-r--r-- 1 australi australi 1018761 Nov  1 10:38 app-ZWnK9V9C.js
+
+📂 ./public/cache
+total 16
+drwxr-xr-x  4 australi australi 4096 Nov  1 23:21 .
+drwxr-x---  5 australi nobody   4096 Nov  5 09:06 ..
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 files
+drwxr-xr-x  3 australi australi 4096 Nov  1 23:21 repo
+
+📂 ./public/cache/repo
+total 20
+drwxr-xr-x 3 australi australi  4096 Nov  1 23:21 .
+drwxr-xr-x 4 australi australi  4096 Nov  1 23:21 ..
+drwxr-xr-x 2 australi australi 12288 Nov  1 23:21 https---repo.packagist.org
+
+📂 ./public/cache/repo/https---repo.packagist.org
+total 7684
+drwxr-xr-x 2 australi australi  12288 Nov  1 23:21 .
+drwxr-xr-x 3 australi australi   4096 Nov  1 23:21 ..
+-rw-r--r-- 1 australi australi    840 Nov  1 23:21 packages.json
+-rw-r--r-- 1 australi australi  29667 Nov  1 23:21 provider-brick~math.json
+-rw-r--r-- 1 australi australi   4780 Nov  1 23:21 provider-carbonphp~carbon-doctrine-types.json
+-rw-r--r-- 1 australi australi   6472 Nov  1 23:21 provider-dflydev~dot-access-data.json
+-rw-r--r-- 1 australi australi  17078 Nov  1 23:21 provider-doctrine~inflector.json
+-rw-r--r-- 1 australi australi   9940 Nov  1 23:21 provider-doctrine~lexer.json
+-rw-r--r-- 1 australi australi  18237 Nov  1 23:21 provider-dragonmantank~cron-expression.json
+-rw-r--r-- 1 australi australi  36492 Nov  1 23:21 provider-egulias~email-validator.json
+-rw-r--r-- 1 australi australi  11197 Nov  1 23:21 provider-ezyang~htmlpurifier.json
+-rw-r--r-- 1 australi australi  22542 Nov  1 23:21 provider-fakerphp~faker.json
+-rw-r--r-- 1 australi australi  44863 Nov  1 23:21 provider-filp~whoops.json
+-rw-r--r-- 1 australi australi   7520 Nov  1 23:21 provider-fruitcake~php-cors.json
+-rw-r--r-- 1 australi australi   7127 Nov  1 23:21 provider-graham-campbell~result-type.json
+-rw-r--r-- 1 australi australi  91546 Nov  1 23:21 provider-guzzlehttp~guzzle.json
+-rw-r--r-- 1 australi australi  14150 Nov  1 23:21 provider-guzzlehttp~promises.json
+-rw-r--r-- 1 australi australi  30361 Nov  1 23:21 provider-guzzlehttp~psr7.json
+-rw-r--r-- 1 australi australi   6956 Nov  1 23:21 provider-guzzlehttp~uri-template.json
+-rw-r--r-- 1 australi australi   5904 Nov  1 23:21 provider-hamcrest~hamcrest-php.json
+-rw-r--r-- 1 australi australi 841543 Nov  1 23:21 provider-laravel~framework.json
+-rw-r--r-- 1 australi australi   8993 Nov  1 23:21 provider-laravel~pail.json
+-rw-r--r-- 1 australi australi  40769 Nov  1 23:21 provider-laravel~pint.json
+-rw-r--r-- 1 australi australi  21253 Nov  1 23:21 provider-laravel~prompts.json
+-rw-r--r-- 1 australi australi  65844 Nov  1 23:21 provider-laravel~sail.json
+-rw-r--r-- 1 australi australi  12799 Nov  1 23:21 provider-laravel~serializable-closure.json
+-rw-r--r-- 1 australi australi  20841 Nov  1 23:21 provider-laravel~tinker.json
+-rw-r--r-- 1 australi australi  81403 Nov  1 23:21 provider-league~commonmark.json
+-rw-r--r-- 1 australi australi   4017 Nov  1 23:21 provider-league~config.json
+-rw-r--r-- 1 australi australi 156335 Nov  1 23:21 provider-league~flysystem.json
+-rw-r--r-- 1 australi australi   7992 Nov  1 23:21 provider-league~flysystem-local.json
+-rw-r--r-- 1 australi australi  11766 Nov  1 23:21 provider-league~mime-type-detection.json
+-rw-r--r-- 1 australi australi  14516 Nov  1 23:21 provider-league~uri-interfaces.json
+-rw-r--r-- 1 australi australi  29135 Nov  1 23:21 provider-league~uri.json
+-rw-r--r-- 1 australi australi   2908 Nov  1 23:21 provider-mews~purifier~dev.json
+-rw-r--r-- 1 australi australi  26794 Nov  1 23:21 provider-mews~purifier.json
+-rw-r--r-- 1 australi australi  29389 Nov  1 23:21 provider-mockery~mockery.json
+-rw-r--r-- 1 australi australi  74492 Nov  1 23:21 provider-monolog~monolog.json
+-rw-r--r-- 1 australi australi  20970 Nov  1 23:21 provider-myclabs~deep-copy.json
+-rw-r--r-- 1 australi australi 123503 Nov  1 23:21 provider-nesbot~carbon.json
+-rw-r--r-- 1 australi australi  10000 Nov  1 23:21 provider-nette~schema.json
+-rw-r--r-- 1 australi australi  41411 Nov  1 23:21 provider-nette~utils.json
+-rw-r--r-- 1 australi australi  58663 Nov  1 23:21 provider-nikic~php-parser.json
+-rw-r--r-- 1 australi australi  68466 Nov  1 23:21 provider-nunomaduro~collision.json
+-rw-r--r-- 1 australi australi  26051 Nov  1 23:21 provider-nunomaduro~termwind.json
+-rw-r--r-- 1 australi australi   5545 Nov  1 23:21 provider-phar-io~manifest.json
+-rw-r--r-- 1 australi australi   7287 Nov  1 23:21 provider-phar-io~version.json
+-rw-r--r-- 1 australi australi  16517 Nov  1 23:21 provider-phpoption~phpoption.json
+-rw-r--r-- 1 australi australi 159589 Nov  1 23:21 provider-phpunit~php-code-coverage.json
+-rw-r--r-- 1 australi australi  20911 Nov  1 23:21 provider-phpunit~php-file-iterator.json
+-rw-r--r-- 1 australi australi  10967 Nov  1 23:21 provider-phpunit~php-invoker.json
+-rw-r--r-- 1 australi australi  10709 Nov  1 23:21 provider-phpunit~php-text-template.json
+-rw-r--r-- 1 australi australi  18321 Nov  1 23:21 provider-phpunit~php-timer.json
+-rw-r--r-- 1 australi australi 584521 Nov  1 23:21 provider-phpunit~phpunit.json
+-rw-r--r-- 1 australi australi   1009 Nov  1 23:21 provider-psr~clock.json
+-rw-r--r-- 1 australi australi   4646 Nov  1 23:21 provider-psr~container.json
+-rw-r--r-- 1 australi australi   3966 Nov  1 23:21 provider-psr~event-dispatcher.json
+-rw-r--r-- 1 australi australi   4012 Nov  1 23:21 provider-psr~http-client.json
+-rw-r--r-- 1 australi australi   2883 Nov  1 23:21 provider-psr~http-factory.json
+-rw-r--r-- 1 australi australi   9094 Nov  1 23:21 provider-psr~http-message.json
+-rw-r--r-- 1 australi australi   6426 Nov  1 23:21 provider-psr~log.json
+-rw-r--r-- 1 australi australi   4166 Nov  1 23:21 provider-psr~simple-cache.json
+-rw-r--r-- 1 australi australi  68394 Nov  1 23:21 provider-psy~psysh.json
+-rw-r--r-- 1 australi australi   7038 Nov  1 23:21 provider-ralouphie~getallheaders.json
+-rw-r--r-- 1 australi australi  14486 Nov  1 23:21 provider-ramsey~collection.json
+-rw-r--r-- 1 australi australi  64339 Nov  1 23:21 provider-ramsey~uuid.json
+-rw-r--r-- 1 australi australi   8322 Nov  1 23:21 provider-sebastian~cli-parser.json
+-rw-r--r-- 1 australi australi   9229 Nov  1 23:21 provider-sebastian~code-unit.json
+-rw-r--r-- 1 australi australi   8387 Nov  1 23:21 provider-sebastian~code-unit-reverse-lookup.json
+-rw-r--r-- 1 australi australi  37202 Nov  1 23:21 provider-sebastian~comparator.json
+-rw-r--r-- 1 australi australi   8938 Nov  1 23:21 provider-sebastian~complexity.json
+-rw-r--r-- 1 australi australi  21195 Nov  1 23:21 provider-sebastian~diff.json
+-rw-r--r-- 1 australi australi  31781 Nov  1 23:21 provider-sebastian~environment.json
+-rw-r--r-- 1 australi australi  33267 Nov  1 23:21 provider-sebastian~exporter.json
+-rw-r--r-- 1 australi australi  21455 Nov  1 23:21 provider-sebastian~global-state.json
+-rw-r--r-- 1 australi australi   8236 Nov  1 23:21 provider-sebastian~lines-of-code.json
+-rw-r--r-- 1 australi australi  12600 Nov  1 23:21 provider-sebastian~object-enumerator.json
+-rw-r--r-- 1 australi australi   9959 Nov  1 23:21 provider-sebastian~object-reflector.json
+-rw-r--r-- 1 australi australi  18435 Nov  1 23:21 provider-sebastian~recursion-context.json
+-rw-r--r-- 1 australi australi  20836 Nov  1 23:21 provider-sebastian~type.json
+-rw-r--r-- 1 australi australi  11103 Nov  1 23:21 provider-sebastian~version.json
+-rw-r--r-- 1 australi australi   4387 Nov  1 23:21 provider-staabm~side-effects-detector.json
+-rw-r--r-- 1 australi australi  19506 Nov  1 23:21 provider-symfony~clock.json
+-rw-r--r-- 1 australi australi 306827 Nov  1 23:21 provider-symfony~console.json
+-rw-r--r-- 1 australi australi 162671 Nov  1 23:21 provider-symfony~css-selector.json
+-rw-r--r-- 1 australi australi  12975 Nov  1 23:21 provider-symfony~deprecation-contracts.json
+-rw-r--r-- 1 australi australi 108251 Nov  1 23:21 provider-symfony~error-handler.json
+-rw-r--r-- 1 australi australi  21943 Nov  1 23:21 provider-symfony~event-dispatcher-contracts.json
+-rw-r--r-- 1 australi australi 194988 Nov  1 23:21 provider-symfony~event-dispatcher.json
+-rw-r--r-- 1 australi australi 194032 Nov  1 23:21 provider-symfony~finder.json
+-rw-r--r-- 1 australi australi 323343 Nov  1 23:21 provider-symfony~http-foundation.json
+-rw-r--r-- 1 australi australi 439751 Nov  1 23:21 provider-symfony~http-kernel.json
+-rw-r--r-- 1 australi australi 118541 Nov  1 23:21 provider-symfony~mailer.json
+-rw-r--r-- 1 australi australi 118917 Nov  1 23:21 provider-symfony~mime.json
+-rw-r--r-- 1 australi australi  14748 Nov  1 23:21 provider-symfony~polyfill-ctype.json
+-rw-r--r-- 1 australi australi  21436 Nov  1 23:21 provider-symfony~polyfill-intl-grapheme.json
+-rw-r--r-- 1 australi australi  16178 Nov  1 23:21 provider-symfony~polyfill-intl-idn.json
+-rw-r--r-- 1 australi australi  20778 Nov  1 23:21 provider-symfony~polyfill-intl-normalizer.json
+-rw-r--r-- 1 australi australi  21805 Nov  1 23:21 provider-symfony~polyfill-mbstring.json
+-rw-r--r-- 1 australi australi  13009 Nov  1 23:21 provider-symfony~polyfill-php80.json
+-rw-r--r-- 1 australi australi   4776 Nov  1 23:21 provider-symfony~polyfill-php83.json
+-rw-r--r-- 1 australi australi  13227 Nov  1 23:21 provider-symfony~polyfill-uuid.json
+-rw-r--r-- 1 australi australi 224154 Nov  1 23:21 provider-symfony~process.json
+-rw-r--r-- 1 australi australi 249393 Nov  1 23:21 provider-symfony~routing.json
+-rw-r--r-- 1 australi australi  23995 Nov  1 23:21 provider-symfony~service-contracts.json
+-rw-r--r-- 1 australi australi  85604 Nov  1 23:21 provider-symfony~string.json
+-rw-r--r-- 1 australi australi  24060 Nov  1 23:21 provider-symfony~translation-contracts.json
+-rw-r--r-- 1 australi australi 261960 Nov  1 23:21 provider-symfony~translation.json
+-rw-r--r-- 1 australi australi  44455 Nov  1 23:21 provider-symfony~uid.json
+-rw-r--r-- 1 australi australi 226887 Nov  1 23:21 provider-symfony~var-dumper.json
+-rw-r--r-- 1 australi australi 220256 Nov  1 23:21 provider-symfony~yaml.json
+-rw-r--r-- 1 australi australi   5136 Nov  1 23:21 provider-theseer~tokenizer.json
+-rw-r--r-- 1 australi australi  16232 Nov  1 23:21 provider-tijsverkoyen~css-to-inline-styles.json
+-rw-r--r-- 1 australi australi  50436 Nov  1 23:21 provider-vlucas~phpdotenv.json
+-rw-r--r-- 1 australi australi  20641 Nov  1 23:21 provider-voku~portable-ascii.json
+-rw-r--r-- 1 australi australi  11498 Nov  1 23:21 provider-webmozart~assert.json
+
+📂 ./public/cache/files
+total 68
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x  4 australi australi 4096 Nov  1 23:21 ..
+drwxr-xr-x  3 australi australi 4096 Nov  1 23:21 ezyang
+drwxr-xr-x  3 australi australi 4096 Nov  1 23:21 fakerphp
+drwxr-xr-x  3 australi australi 4096 Nov  1 23:21 filp
+drwxr-xr-x  3 australi australi 4096 Nov  1 23:21 hamcrest
+drwxr-xr-x  5 australi australi 4096 Nov  1 23:21 laravel
+drwxr-xr-x  3 australi australi 4096 Nov  1 23:21 mews
+drwxr-xr-x  3 australi australi 4096 Nov  1 23:21 mockery
+drwxr-xr-x  3 australi australi 4096 Nov  1 23:21 myclabs
+drwxr-xr-x  3 australi australi 4096 Nov  1 23:21 nunomaduro
+drwxr-xr-x  4 australi australi 4096 Nov  1 23:21 phar-io
+drwxr-xr-x  8 australi australi 4096 Nov  1 23:21 phpunit
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 sebastian
+drwxr-xr-x  3 australi australi 4096 Nov  1 23:21 staabm
+drwxr-xr-x  3 australi australi 4096 Nov  1 23:21 symfony
+drwxr-xr-x  3 australi australi 4096 Nov  1 23:21 theseer
+
+📂 ./public/cache/files/symfony
+total 12
+drwxr-xr-x  3 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 ..
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 yaml
+
+📂 ./public/cache/files/symfony/yaml
+total 48
+drwxr-xr-x 2 australi australi  4096 Nov  1 23:21 .
+drwxr-xr-x 3 australi australi  4096 Nov  1 23:21 ..
+-rw-r--r-- 1 australi australi 35270 Nov  1 23:21 634f92f769d1eb2bfa323de9a25ddfab5d729aef.zip
+
+📂 ./public/cache/files/staabm
+total 12
+drwxr-xr-x  3 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 ..
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 side-effects-detector
+
+📂 ./public/cache/files/staabm/side-effects-detector
+total 28
+drwxr-xr-x 2 australi australi  4096 Nov  1 23:21 .
+drwxr-xr-x 3 australi australi  4096 Nov  1 23:21 ..
+-rw-r--r-- 1 australi australi 15679 Nov  1 23:21 1bf967123c8eab6ad3b7d10ead807723f1487787.zip
+
+📂 ./public/cache/files/mews
+total 12
+drwxr-xr-x  3 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 ..
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 purifier
+
+📂 ./public/cache/files/mews/purifier
+total 24
+drwxr-xr-x 2 australi australi  4096 Nov  1 23:21 .
+drwxr-xr-x 3 australi australi  4096 Nov  1 23:21 ..
+-rw-r--r-- 1 australi australi 10448 Nov  1 23:21 a7d0c56c335e07801ff4e1b3d0c30e99ad78c92c.zip
+
+📂 ./public/cache/files/fakerphp
+total 12
+drwxr-xr-x  3 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 ..
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 faker
+
+📂 ./public/cache/files/fakerphp/faker
+total 3456
+drwxr-xr-x 2 australi australi    4096 Nov  1 23:21 .
+drwxr-xr-x 3 australi australi    4096 Nov  1 23:21 ..
+-rw-r--r-- 1 australi australi 3522251 Nov  1 23:21 cd3ee3e52b771fb0718af48c0ecde2cd7f473bdc.zip
+
+📂 ./public/cache/files/hamcrest
+total 12
+drwxr-xr-x  3 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 ..
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 hamcrest-php
+
+📂 ./public/cache/files/hamcrest/hamcrest-php
+total 88
+drwxr-xr-x 2 australi australi  4096 Nov  1 23:21 .
+drwxr-xr-x 3 australi australi  4096 Nov  1 23:21 ..
+-rw-r--r-- 1 australi australi 77501 Nov  1 23:21 7ac05900d9d3c4092f0c5ff3f56676f924aca22f.zip
+
+📂 ./public/cache/files/myclabs
+total 12
+drwxr-xr-x  3 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 ..
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 deep-copy
+
+📂 ./public/cache/files/myclabs/deep-copy
+total 36
+drwxr-xr-x 2 australi australi  4096 Nov  1 23:21 .
+drwxr-xr-x 3 australi australi  4096 Nov  1 23:21 ..
+-rw-r--r-- 1 australi australi 22714 Nov  1 23:21 ee382bea4b497f734eb64325af8725e5f3ffc151.zip
+
+📂 ./public/cache/files/filp
+total 12
+drwxr-xr-x  3 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 ..
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 whoops
+
+📂 ./public/cache/files/filp/whoops
+total 92
+drwxr-xr-x 2 australi australi  4096 Nov  1 23:21 .
+drwxr-xr-x 3 australi australi  4096 Nov  1 23:21 ..
+-rw-r--r-- 1 australi australi 78372 Nov  1 23:21 ffb10c1355c103bdb6b22ae1a7bf86d208826083.zip
+
+📂 ./public/cache/files/theseer
+total 12
+drwxr-xr-x  3 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 ..
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 tokenizer
+
+📂 ./public/cache/files/theseer/tokenizer
+total 24
+drwxr-xr-x 2 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x 3 australi australi 4096 Nov  1 23:21 ..
+-rw-r--r-- 1 australi australi 8791 Nov  1 23:21 3ba48de51d423f21e5b00031d4356fe31f1a9cf7.zip
+
+📂 ./public/cache/files/sebastian
+total 68
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 ..
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 cli-parser
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 code-unit
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 code-unit-reverse-lookup
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 comparator
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 complexity
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 diff
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 environment
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 exporter
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 global-state
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 lines-of-code
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 object-enumerator
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 object-reflector
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 recursion-context
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 type
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 version
+
+📂 ./public/cache/files/sebastian/global-state
+total 24
+drwxr-xr-x  2 australi australi  4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi  4096 Nov  1 23:21 ..
+-rw-r--r--  1 australi australi 11817 Nov  1 23:21 b54b251ba4c376fe9a45e0fc562f49a74f58ef37.zip
+
+📂 ./public/cache/files/sebastian/exporter
+total 24
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 ..
+-rw-r--r--  1 australi australi 8555 Nov  1 23:21 ae15d093bd539f8c9df1e68841b0091ef1aefea5.zip
+
+📂 ./public/cache/files/sebastian/code-unit
+total 28
+drwxr-xr-x  2 australi australi  4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi  4096 Nov  1 23:21 ..
+-rw-r--r--  1 australi australi 16096 Nov  1 23:21 947384bfe4963b28ba6df88b7f8535d68314519a.zip
+
+📂 ./public/cache/files/sebastian/code-unit-reverse-lookup
+total 20
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 ..
+-rw-r--r--  1 australi australi 5862 Nov  1 23:21 e647f1c3c3ac8eea993465f59c793cde56424acd.zip
+
+📂 ./public/cache/files/sebastian/object-reflector
+total 20
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 ..
+-rw-r--r--  1 australi australi 5507 Nov  1 23:21 b2aeb04d3fb5de6adb035b4a337b85f005260f1e.zip
+
+📂 ./public/cache/files/sebastian/complexity
+total 24
+drwxr-xr-x  2 australi australi  4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi  4096 Nov  1 23:21 ..
+-rw-r--r--  1 australi australi 11928 Nov  1 23:21 b30b4cd96bb79d012e4c35ce2e0897e9fa3a4fb2.zip
+
+📂 ./public/cache/files/sebastian/object-enumerator
+total 20
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 ..
+-rw-r--r--  1 australi australi 5837 Nov  1 23:21 73bb37c12489ebeda374915dc48be1b969d6fc08.zip
+
+📂 ./public/cache/files/sebastian/version
+total 20
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 ..
+-rw-r--r--  1 australi australi 5924 Nov  1 23:21 9ddbebb2770481511eebf896351b698dbecd27a2.zip
+
+📂 ./public/cache/files/sebastian/diff
+total 40
+drwxr-xr-x  2 australi australi  4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi  4096 Nov  1 23:21 ..
+-rw-r--r--  1 australi australi 25213 Nov  1 23:21 4d29218c6f97167a77d625595048d51bd7bd6db7.zip
+
+📂 ./public/cache/files/sebastian/environment
+total 24
+drwxr-xr-x  2 australi australi  4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi  4096 Nov  1 23:21 ..
+-rw-r--r--  1 australi australi 10117 Nov  1 23:21 cf5ab7f5fe47d4e3f2f06963fc54f445437e07b5.zip
+
+📂 ./public/cache/files/sebastian/recursion-context
+total 20
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 ..
+-rw-r--r--  1 australi australi 6169 Nov  1 23:21 46e9bd9ce336eb48003f49f17c801f4e9c0041d7.zip
+
+📂 ./public/cache/files/sebastian/cli-parser
+total 24
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 ..
+-rw-r--r--  1 australi australi 9267 Nov  1 23:21 7917b42dccf77da5de05886328cbe90c9c6e9fe1.zip
+
+📂 ./public/cache/files/sebastian/comparator
+total 36
+drwxr-xr-x  2 australi australi  4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi  4096 Nov  1 23:21 ..
+-rw-r--r--  1 australi australi 22991 Nov  1 23:21 7845fb8a746b4187d65e347dde8cfe92a202a262.zip
+
+📂 ./public/cache/files/sebastian/type
+total 36
+drwxr-xr-x  2 australi australi  4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi  4096 Nov  1 23:21 ..
+-rw-r--r--  1 australi australi 23613 Nov  1 23:21 c6434468ffbe290c2d799c4685a8a43b9eca5810.zip
+
+📂 ./public/cache/files/sebastian/lines-of-code
+total 24
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 ..
+-rw-r--r--  1 australi australi 9810 Nov  1 23:21 40e8c68a54c248cd88c0c780f1bcee0e988b9921.zip
+
+📂 ./public/cache/files/mockery
+total 12
+drwxr-xr-x  3 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 ..
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 mockery
+
+📂 ./public/cache/files/mockery/mockery
+total 192
+drwxr-xr-x 2 australi australi   4096 Nov  1 23:21 .
+drwxr-xr-x 3 australi australi   4096 Nov  1 23:21 ..
+-rw-r--r-- 1 australi australi 182576 Nov  1 23:21 1437e1bfd21d9aac832ae175368b2cee0e9d3719.zip
+
+📂 ./public/cache/files/nunomaduro
+total 12
+drwxr-xr-x  3 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 ..
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 collision
+
+📂 ./public/cache/files/nunomaduro/collision
+total 64
+drwxr-xr-x 2 australi australi  4096 Nov  1 23:21 .
+drwxr-xr-x 3 australi australi  4096 Nov  1 23:21 ..
+-rw-r--r-- 1 australi australi 48307 Nov  1 23:21 015c86dce9f88643545f3ba6fd3b514352af0676.zip
+
+📂 ./public/cache/files/laravel
+total 20
+drwxr-xr-x  5 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 ..
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 pail
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 pint
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 sail
+
+📂 ./public/cache/files/laravel/pail
+total 28
+drwxr-xr-x 2 australi australi  4096 Nov  1 23:21 .
+drwxr-xr-x 5 australi australi  4096 Nov  1 23:21 ..
+-rw-r--r-- 1 australi australi 16211 Nov  1 23:21 b87e0bf26ed950b378ed44f48dce0e88b3c25c49.zip
+
+📂 ./public/cache/files/laravel/sail
+total 56
+drwxr-xr-x 2 australi australi  4096 Nov  1 23:21 .
+drwxr-xr-x 5 australi australi  4096 Nov  1 23:21 ..
+-rw-r--r-- 1 australi australi 37053 Nov  1 23:21 c0066ddee5cddef239efbbc4e16d9df604908300.zip
+
+📂 ./public/cache/files/laravel/pint
+total 14080
+drwxr-xr-x 2 australi australi     4096 Nov  1 23:21 .
+drwxr-xr-x 5 australi australi     4096 Nov  1 23:21 ..
+-rw-r--r-- 1 australi australi 14401064 Nov  1 23:21 6526542d257925940bb7cfffd247bb48e911c30b.zip
+
+📂 ./public/cache/files/phpunit
+total 32
+drwxr-xr-x  8 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 ..
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 php-code-coverage
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 php-file-iterator
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 php-invoker
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 php-text-template
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 php-timer
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 phpunit
+
+📂 ./public/cache/files/phpunit/php-text-template
+total 24
+drwxr-xr-x 2 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x 8 australi australi 4096 Nov  1 23:21 ..
+-rw-r--r-- 1 australi australi 8528 Nov  1 23:21 f890fdccec46940b4633ad050967fc9e1ba119d4.zip
+
+📂 ./public/cache/files/phpunit/php-file-iterator
+total 24
+drwxr-xr-x 2 australi australi  4096 Nov  1 23:21 .
+drwxr-xr-x 8 australi australi  4096 Nov  1 23:21 ..
+-rw-r--r-- 1 australi australi 10039 Nov  1 23:21 74b3ac93571fb41aaedd36e8b865175e924542e8.zip
+
+📂 ./public/cache/files/phpunit/php-code-coverage
+total 320
+drwxr-xr-x 2 australi australi   4096 Nov  1 23:21 .
+drwxr-xr-x 8 australi australi   4096 Nov  1 23:21 ..
+-rw-r--r-- 1 australi australi 308582 Nov  1 23:21 b32f2a33337d4f505f0b822e36f1fb1e72006165.zip
+
+📂 ./public/cache/files/phpunit/php-timer
+total 24
+drwxr-xr-x 2 australi australi  4096 Nov  1 23:21 .
+drwxr-xr-x 8 australi australi  4096 Nov  1 23:21 ..
+-rw-r--r-- 1 australi australi 10220 Nov  1 23:21 2645f4227496336a2aeb8bec0d8e3f16e20fd3f9.zip
+
+📂 ./public/cache/files/phpunit/phpunit
+total 992
+drwxr-xr-x 2 australi australi   4096 Nov  1 23:21 .
+drwxr-xr-x 8 australi australi   4096 Nov  1 23:21 ..
+-rw-r--r-- 1 australi australi 995450 Nov  1 23:21 f18783034e1475c5690682acc58bd8abf933e55f.zip
+
+📂 ./public/cache/files/phpunit/php-invoker
+total 20
+drwxr-xr-x 2 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x 8 australi australi 4096 Nov  1 23:21 ..
+-rw-r--r-- 1 australi australi 7515 Nov  1 23:21 fa21284bd3106889eb5c308e4f8977dcef31b122.zip
+
+📂 ./public/cache/files/phar-io
+total 16
+drwxr-xr-x  4 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 ..
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 manifest
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 version
+
+📂 ./public/cache/files/phar-io/manifest
+total 60
+drwxr-xr-x 2 australi australi  4096 Nov  1 23:21 .
+drwxr-xr-x 4 australi australi  4096 Nov  1 23:21 ..
+-rw-r--r-- 1 australi australi 46290 Nov  1 23:21 76bff606ca30e559b645a1f35d005f1f29c3c86e.zip
+
+📂 ./public/cache/files/phar-io/version
+total 32
+drwxr-xr-x 2 australi australi  4096 Nov  1 23:21 .
+drwxr-xr-x 4 australi australi  4096 Nov  1 23:21 ..
+-rw-r--r-- 1 australi australi 18552 Nov  1 23:21 1495d1d88b1ae7e031b437037ce96298d897a969.zip
+
+📂 ./public/cache/files/ezyang
+total 12
+drwxr-xr-x  3 australi australi 4096 Nov  1 23:21 .
+drwxr-xr-x 17 australi australi 4096 Nov  1 23:21 ..
+drwxr-xr-x  2 australi australi 4096 Nov  1 23:21 htmlpurifier
+
+📂 ./public/cache/files/ezyang/htmlpurifier
+total 440
+drwxr-xr-x 2 australi australi   4096 Nov  1 23:21 .
+drwxr-xr-x 3 australi australi   4096 Nov  1 23:21 ..
+-rw-r--r-- 1 australi australi 432512 Nov  1 23:21 8a8aea88d114364822d6ca1770a16f1c7af28a7a.zip
+
+📂 ./public/css
+total 16
+drwxr-xr-x 2 australi australi 4096 Nov  5 09:06 .
+drwxr-x--- 5 australi nobody   4096 Nov  5 09:06 ..
+-rw-r--r-- 1 australi australi  253 Nov  5 09:06 overrides.css
+
+📂 ./cache
+total 8
+drwxr-xr-x  2 australi australi 4096 Oct 20 15:59 .
+drwxr-x--- 17 australi nobody   4096 Nov  7 17:52 ..
+
+📂 ./tests
+total 24
+drwxr-xr-x  4 australi australi 4096 Oct 20 15:59 .
+drwxr-x--- 17 australi nobody   4096 Nov  7 17:52 ..
+drwxr-xr-x  2 australi australi 4096 Oct 22 14:11 Feature
+-rw-r--r--  1 australi australi  142 Jan 25  2025 TestCase.php
+drwxr-xr-x  2 australi australi 4096 Oct 20 15:59 Unit
+
+📂 ./tests/Unit
+total 16
+drwxr-xr-x 2 australi australi 4096 Oct 20 15:59 .
+drwxr-xr-x 4 australi australi 4096 Oct 20 15:59 ..
+-rw-r--r-- 1 australi australi  243 Jan 25  2025 ExampleTest.php
+
+📂 ./tests/Feature
+total 40
+drwxr-xr-x 2 australi australi 4096 Oct 22 14:11 .
+drwxr-xr-x 4 australi australi 4096 Oct 20 15:59 ..
+-rw-r--r-- 1 australi australi 1810 Oct 22 14:07 AuthFlowTest.php
+-rw-r--r-- 1 australi australi  458 Oct 22 13:49 ExampleTest.php
+-rw-r--r-- 1 australi australi 1446 Oct 22 14:09 NavVisibilityTest.php
+-rw-r--r-- 1 australi australi 2098 Oct 22 14:11 ReflectionCrudTest.php
+
+📂 ./app
+total 32
+drwxr-xr-x  8 australi australi 4096 Nov  5 09:06 .
+drwxr-x--- 17 australi nobody   4096 Nov  7 17:52 ..
+drwxr-xr-x  3 australi australi 4096 Oct 28 21:51 Console
+drwxr-xr-x  2 australi australi 4096 Nov  5 09:06 Enums
+drwxr-xr-x  5 australi australi 4096 Nov  7 12:18 Http
+drwxr-xr-x  2 australi australi 4096 Nov  6 11:56 Models
+drwxr-xr-x  2 australi australi 4096 Oct 28 17:47 Policies
+drwxr-xr-x  2 australi australi 4096 Nov  5 18:01 Providers
+
+📂 ./app/Models
+total 164
+drwxr-xr-x 2 australi australi 4096 Nov  6 11:56 .
+drwxr-xr-x 8 australi australi 4096 Nov  5 09:06 ..
+-rw-r--r-- 1 australi australi  977 Nov  5 09:06 CheckpointDeadline.php
+-rw-r--r-- 1 australi australi  667 Nov  5 09:06 CheckpointStage.php
+-rw-r--r-- 1 australi australi  807 Nov  5 09:06 CheckpointStatus.php
+-rw-r--r-- 1 australi australi  413 Oct 21 10:43 CommentAnchor.php
+-rw-r--r-- 1 australi australi  519 Oct 23 08:21 CommentEvent.php
+-rw-r--r-- 1 australi australi  440 Oct 26 13:19 CommentMessage.php
+-rw-r--r-- 1 australi australi 2132 Nov  5 09:06 Comment.php
+-rw-r--r-- 1 australi australi  579 Oct 21 10:49 GeneralComment.php
+-rw-r--r-- 1 australi australi 1964 Oct 23 10:39 GeneralMessage.php
+-rw-r--r-- 1 australi australi  645 Oct 24 09:32 GeneralMessageRead.php
+-rw-r--r-- 1 australi australi  568 Oct 22 12:26 Reflection.php
+-rw-r--r-- 1 australi australi 1864 Nov  1 08:57 RichTextBlock.php
+-rw-r--r-- 1 australi australi  525 Oct 21 10:50 StudentMood.php
+-rw-r--r-- 1 australi australi 1114 Nov  6 11:56 Student.php
+-rw-r--r-- 1 australi australi 1163 Nov  6 07:11 Submission.php
+-rw-r--r-- 1 australi australi  398 Oct 21 06:56 Teacher.php
+-rw-r--r-- 1 australi australi  621 Nov  5 09:06 Thread.php
+-rw-r--r-- 1 australi australi 4652 Oct 24 19:55 User.php
+-rw-r--r-- 1 australi australi  916 Oct 29 13:04 Version.php
+
+📂 ./app/Providers
+total 16
+drwxr-xr-x 2 australi australi 4096 Nov  5 18:01 .
+drwxr-xr-x 8 australi australi 4096 Nov  5 09:06 ..
+-rw-r--r-- 1 australi australi  768 Oct 28 17:49 AppServiceProvider.php
+
+📂 ./app/Console
+total 20
+drwxr-xr-x 3 australi australi 4096 Oct 28 21:51 .
+drwxr-xr-x 8 australi australi 4096 Nov  5 09:06 ..
+drwxr-xr-x 2 australi australi 4096 Oct 28 21:48 Commands
+-rw-r--r-- 1 australi australi  804 Oct 28 21:51 Kernel.php
+
+📂 ./app/Console/Commands
+total 20
+drwxr-xr-x 2 australi australi 4096 Oct 28 21:48 .
+drwxr-xr-x 3 australi australi 4096 Oct 28 21:51 ..
+-rw-r--r-- 1 australi australi 4973 Oct 26 15:22 BackfillStudents.php
+
+📂 ./app/Policies
+total 16
+drwxr-xr-x 2 australi australi 4096 Oct 28 17:47 .
+drwxr-xr-x 8 australi australi 4096 Nov  5 09:06 ..
+-rw-r--r-- 1 australi australi 1205 Oct 28 17:47 ThreadPolicy.php
+
+📂 ./app/Http
+total 28
+drwxr-xr-x 5 australi australi 4096 Nov  7 12:18 .
+drwxr-xr-x 8 australi australi 4096 Nov  5 09:06 ..
+drwxr-xr-x 4 australi australi 4096 Nov  7 17:30 Controllers
+-rw-r--r-- 1 australi australi 3831 Nov  7 12:18 Kernel.php
+drwxr-xr-x 2 australi australi 4096 Nov  7 12:18 Middleware
+drwxr-xr-x 2 australi australi 4096 Nov  5 09:06 Requests
+
+📂 ./app/Http/Requests
+total 24
+drwxr-xr-x 2 australi australi 4096 Nov  5 09:06 .
+drwxr-xr-x 5 australi australi 4096 Nov  7 12:18 ..
+-rw-r--r-- 1 australi australi  819 Nov  5 09:06 StoreCheckpointStageRequest.php
+-rw-r--r-- 1 australi australi  989 Nov  5 09:06 UpdateCheckpointStageRequest.php
+
+📂 ./app/Http/Middleware
+total 40
+drwxr-xr-x 2 australi australi 4096 Nov  7 12:18 .
+drwxr-xr-x 5 australi australi 4096 Nov  7 12:18 ..
+-rw-r--r-- 1 australi australi  799 Oct 25 00:27 EnsureAdmin.php
+-rw-r--r-- 1 australi australi 1687 Oct 26 19:27 EnsureRole.php
+-rw-r--r-- 1 australi australi 2027 Oct 25 00:41 EnsureTeacher.php
+-rw-r--r-- 1 australi australi  448 Nov  6 06:50 VerifyCsrfToken.php
+
+📂 ./app/Http/Controllers
+total 172
+drwxr-xr-x 4 australi australi  4096 Nov  7 17:30 .
+drwxr-xr-x 5 australi australi  4096 Nov  7 12:18 ..
+drwxr-xr-x 2 australi australi  4096 Nov  5 09:06 Admin
+-rw-r--r-- 1 australi australi  1410 Oct 25 10:48 AdminController.php
+-rw-r--r-- 1 australi australi  5635 Oct 26 12:55 AuthController.php
+-rw-r--r-- 1 australi australi  3305 Nov  5 09:06 CheckpointStatusController.php
+-rw-r--r-- 1 australi australi    77 Jan 25  2025 Controller.php
+-rw-r--r-- 1 australi australi 21254 Nov  6 14:15 FeedbackController.php
+-rw-r--r-- 1 australi australi  7667 Oct 26 14:21 GeneralMessageController.php
+-rw-r--r-- 1 australi australi  2914 Oct 22 12:27 ReflectionController.php
+-rw-r--r-- 1 australi australi  5052 Nov  5 09:06 ResourcesController.php
+-rw-r--r-- 1 australi australi  7345 Nov  5 09:06 StudentController.php
+-rw-r--r-- 1 australi australi   595 Oct 24 17:53 StudentDashboardController.php
+-rw-r--r-- 1 australi australi  1154 Oct 24 17:10 StudentStartController.php
+-rw-r--r-- 1 australi australi  2992 Nov  6 05:26 SubmissionController.php
+-rw-r--r-- 1 australi australi 14560 Nov  7 17:30 ThreadController.php
+-rw-r--r-- 1 australi australi  2078 Nov  5 19:03 ThreadPositionsController.php
+drwxr-xr-x 2 australi australi  4096 Nov  6 07:00 Tok
+
+📂 ./app/Http/Controllers/Admin
+total 40
+drwxr-xr-x 2 australi australi 4096 Nov  5 09:06 .
+drwxr-xr-x 4 australi australi 4096 Nov  7 17:30 ..
+-rw-r--r-- 1 australi australi 1985 Nov  5 09:06 CheckpointStageController.php
+-rw-r--r-- 1 australi australi 9252 Oct 28 23:10 StudentController.php
+-rw-r--r-- 1 australi australi 3033 Nov  5 09:06 TeacherController.php
+
+📂 ./app/Http/Controllers/Tok
+total 40
+drwxr-xr-x 2 australi australi 4096 Nov  6 07:00 .
+drwxr-xr-x 4 australi australi 4096 Nov  7 17:30 ..
+-rw-r--r-- 1 australi australi 5959 Nov  6 07:00 DocController.php
+-rw-r--r-- 1 australi australi 7613 Nov  5 18:45 RichTextController.php
+-rw-r--r-- 1 australi australi 2713 Nov  5 21:10 UploadController.php
+
+📂 ./app/Enums
+total 16
+drwxr-xr-x 2 australi australi 4096 Nov  5 09:06 .
+drwxr-xr-x 8 australi australi 4096 Nov  5 09:06 ..
+-rw-r--r-- 1 australi australi 1507 Nov  5 09:06 Checkpoint.php
+
+📂 ./config
+total 124
+drwxr-xr-x  2 australi australi 4096 Nov  6 07:27 .
+drwxr-x--- 17 australi nobody   4096 Nov  7 17:52 ..
+-rw-r--r--  1 australi australi 4354 Oct 20 15:59 app.php
+-rw-r--r--  1 australi australi 4029 Jan 25  2025 auth.php
+-rw-r--r--  1 australi australi 3476 Jan 25  2025 cache.php
+-rw-r--r--  1 australi australi 6198 Jan 25  2025 database.php
+-rw-r--r--  1 australi australi 2500 Jan 25  2025 filesystems.php
+-rw-r--r--  1 australi australi 4310 Jan 25  2025 logging.php
+-rw-r--r--  1 australi australi 3539 Jan 25  2025 mail.php
+-rw-r--r--  1 australi australi 4406 Nov  5 09:06 purifier.php
+-rw-r--r--  1 australi australi 3824 Jan 25  2025 queue.php
+-rw-r--r--  1 australi australi 1035 Jan 25  2025 services.php
+-rw-r--r--  1 australi australi 7858 Jan 25  2025 session.php
+-rw-r--r--  1 australi australi   70 Nov  6 07:27 tok.php
+
+📂 ./routes
+total 44
+drwxr-xr-x  2 australi australi  4096 Nov  6 07:47 .
+drwxr-x--- 17 australi nobody    4096 Nov  7 17:52 ..
+-rw-r--r--  1 australi australi  3230 Nov  6 07:47 api.php
+-rw-r--r--  1 australi australi   210 Jan 25  2025 console.php
+-rw-r--r--  1 australi australi 14535 Nov  5 09:06 web.php
+
+📂 ./bootstrap
+total 28
+drwxrwxr-x  3 australi australi 4096 Nov  5 18:04 .
+drwxr-x--- 17 australi nobody   4096 Nov  7 17:52 ..
+-rwxrwxr-x  1 australi australi 1330 Nov  5 18:04 app.php
+drwxrwxr-x  2 australi australi 4096 Nov  6 07:29 cache
+-rwxrwxr-x  1 australi australi  111 Nov  5 17:46 providers.php
+
+📂 ./bootstrap/cache
+total 84
+drwxrwxr-x 2 australi australi  4096 Nov  6 07:29 .
+drwxrwxr-x 3 australi australi  4096 Nov  5 18:04 ..
+-rw-r--r-- 1 australi australi 25696 Nov  6 07:29 config.php
+-rwxrwxr-x 1 australi australi    14 Jan 25  2025 .gitignore
+-rwxr-xr-x 1 australi australi  1051 Nov  5 18:05 packages.php
+-rwxr-xr-x 1 australi australi 21390 Nov  5 18:05 services.php
+

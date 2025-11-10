@@ -16,7 +16,8 @@ class Submission extends Model
     ];
 
     protected $casts = [
-        'due_at' => 'datetime',
+        'due_at'      => 'datetime',
+        'working_rev' => 'integer',
     ];
 
     // Who owns this submission (the student)
