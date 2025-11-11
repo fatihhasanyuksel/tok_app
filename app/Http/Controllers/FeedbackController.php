@@ -91,7 +91,8 @@ class FeedbackController extends Controller
             ? (DB::table('teachers')->where('id', $teacherId)->value('name') ?? 'Unassigned')
             : 'Unassigned';
 
-$forceV2 = $request->boolean('v2');
+$allowV2 = (bool) env('WORKSPACE_ALLOW_V2', true);
+$forceV2 = $allowV2 && $request->boolean('v2');
 
 $data = [
     'type'            => $type,
