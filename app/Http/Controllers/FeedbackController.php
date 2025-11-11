@@ -91,8 +91,9 @@ class FeedbackController extends Controller
             ? (DB::table('teachers')->where('id', $teacherId)->value('name') ?? 'Unassigned')
             : 'Unassigned';
 
-$allowV2 = (bool) env('WORKSPACE_ALLOW_V2', true);
-$forceV2 = $allowV2 && $request->boolean('v2');
+// --- Choose workspace view: default to V3, allow V2 only if flag + query param ---
+$allowV2 = filter_var(env('WORKSPACE_ALLOW_V2', false), FILTER_VALIDATE_BOOLEAN);
+$useV2   = $allowV2 && $request->boolean('v2');
 
 $data = [
     'type'            => $type,
@@ -107,9 +108,7 @@ $data = [
     'role'            => strtolower((string) ($viewer->role ?? Auth::user()->role ?? 'guest')),
 ];
 
-return $forceV2
-    ? view('workspace', $data)       // legacy (if needed)
-    : view('workspace_v3', $data);   // ✅ default to new V3
+return view($useV2 ? 'workspace' : 'workspace_v3', $data);
     }
 
     // inside app/Http/Controllers/FeedbackController.php
