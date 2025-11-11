@@ -91,18 +91,24 @@ class FeedbackController extends Controller
             ? (DB::table('teachers')->where('id', $teacherId)->value('name') ?? 'Unassigned')
             : 'Unassigned';
 
-        return view('workspace_v3', [
-            'type'            => $type,
-            'student'         => $student,
-            'submission'      => $submission,
-            'latestVersion'   => $latestVersion,
-            'thread'          => null,
-            'threads'         => $threads,
-            'general'         => $general,
-            'supervisorLabel' => $supervisorLabel,
-            'initialHtml'     => $initialHtml,
-            'role' => strtolower((string) ($viewer->role ?? Auth::user()->role ?? 'guest')),
-        ]);
+$forceV2 = $request->boolean('v2');
+
+$data = [
+    'type'            => $type,
+    'student'         => $student,
+    'submission'      => $submission,
+    'latestVersion'   => $latestVersion,
+    'thread'          => null,
+    'threads'         => $threads,
+    'general'         => $general,
+    'supervisorLabel' => $supervisorLabel,
+    'initialHtml'     => $initialHtml,
+    'role'            => strtolower((string) ($viewer->role ?? Auth::user()->role ?? 'guest')),
+];
+
+return $forceV2
+    ? view('workspace', $data)       // legacy (if needed)
+    : view('workspace_v3', $data);   // ✅ default to new V3
     }
 
     // inside app/Http/Controllers/FeedbackController.php
