@@ -89,6 +89,10 @@ Route::middleware('web')->group(function () {
     Route::post('/workspace/{type}/save', [FeedbackController::class, 'saveDraft'])
         ->whereIn('type', ['exhibition', 'essay'])
         ->name('workspace.save');
+        
+    Route::post('/workspace/{type}/upload', [FeedbackController::class, 'upload'])
+    ->whereIn('type', ['exhibition', 'essay'])
+    ->name('workspace.upload');
 
     Route::get('/workspace/{type}/history', [FeedbackController::class, 'history'])
         ->whereIn('type', ['exhibition', 'essay'])

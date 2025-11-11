@@ -8,6 +8,7 @@ use Mews\Purifier\Facades\Purifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Intervention\Image\Laravel\Facades\Image;
 
 use App\Models\User;
 use App\Models\Submission;
@@ -750,5 +751,62 @@ private function htmlToPlain(string $html): string
     $s = preg_replace("/[ \t]+/", ' ', $s);
     $s = preg_replace("/\r\n|\r|\n{3,}/", "\n\n", $s);
     return trim($s);
+}
+/**
+ * Handle image uploads from TipTap editor.
+ * POST /workspace/{type}/upload
+ */
+public function upload(Request $request, string $type)
+{
+    // Accept either "image" or "file" (some toolbars use "file")
+    $request->validate([
+        'image' => 'sometimes|image|max:4096',
+        'file'  => 'sometimes|image|max:4096',
+    ]);
+
+    $uploaded = $request->file('image') ?? $request->file('file');
+    if (!$uploaded) {
+        return response()->json(['error' => 'No image uploaded'], 422);
+    }
+
+    $user = Auth::user();
+    $studentId = $user->id ?? 'guest';
+
+    $hash = sha1_file($uploaded->getRealPath());
+    $ext  = strtolower($uploaded->getClientOriginalExtension());
+    $safeExt = in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif']) ? $ext : 'jpg';
+
+    $dir  = "public/tok/{$studentId}/images";
+    $path = "{$dir}/{$hash}.{$safeExt}";
+
+    if (!Storage::exists($dir)) {
+        Storage::makeDirectory($dir);
+    }
+
+    if (!Storage::exists($path)) {
+        // ✅ Intervention Image v3 API
+        $img = \Intervention\Image\Laravel\Facades\Image::read($uploaded->getRealPath())
+            ->orient()            // auto-rotate by EXIF
+            ->scale(width: 1600); // constrain width, keep aspect
+
+        // Encode to the chosen format
+        switch ($safeExt) {
+            case 'webp':
+                $binary = $img->toWebp(85);
+                break;
+            case 'png':
+                $binary = $img->toPng();
+                break;
+            case 'jpg':
+            case 'jpeg':
+            default:
+                $binary = $img->toJpeg(85);
+                break;
+        }
+
+        Storage::put($path, (string) $binary);
+    }
+
+    return response()->json(['url' => Storage::url($path)]);
 }
 }
