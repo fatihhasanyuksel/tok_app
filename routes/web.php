@@ -106,11 +106,6 @@ Route::middleware('web')->group(function () {
         ->whereIn('type', ['exhibition', 'essay'])
         ->whereNumber('version')
         ->name('workspace.restore');
-        
-    Route::get('/workspace/{type}/compare/{version}', [\App\Http\Controllers\FeedbackController::class, 'compare'])
-    ->whereIn('type', ['exhibition', 'essay'])
-    ->whereNumber('version')
-    ->name('workspace.compare');
     
     Route::get('/workspace/{type}/version/{version}', [\App\Http\Controllers\FeedbackController::class, 'showVersion'])
     ->whereIn('type', ['exhibition', 'essay'])
@@ -143,6 +138,11 @@ Route::middleware(['web', 'auth'])->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['web', 'auth'])->group(function () {
+    // ✅ NEW: allow all logged-in users (student/teacher/admin) to create a thread
+    Route::post('/workspace/{type}/thread', [ThreadController::class, 'create'])
+        ->whereIn('type', ['exhibition', 'essay'])
+        ->name('thread.create');
+
     Route::get('/workspace/{type}/thread/{thread}', [ThreadController::class, 'show'])
         ->whereIn('type', ['exhibition', 'essay'])
         ->whereNumber('thread')
@@ -218,9 +218,6 @@ Route::middleware(['web', EnsureRole::class . ':admin'])->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['web', EnsureRole::class . ':teacher,admin'])->group(function () {
-    Route::post('/workspace/{type}/thread', [ThreadController::class, 'create'])
-        ->whereIn('type', ['exhibition', 'essay'])
-        ->name('thread.create');
 
     // ✅ Teacher/Admin: update a student's checkpoint stage
     Route::post('/checkpoints/status', [CheckpointStatusController::class, 'update'])

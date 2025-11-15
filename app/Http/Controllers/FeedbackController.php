@@ -48,21 +48,19 @@ class FeedbackController extends Controller
             ['status' => 'draft']
         );
 
-        // Ensure a latest version exists (for threads/history panels)
-        $latestVersion = $submission->latestVersion()->first();
-        if (!$latestVersion) {
-            $latestVersion = Version::create([
-                'submission_id' => $submission->id,
-                'body_html'     => '<p><em>Start writing…</em></p>',
-                'files_json'    => [],
-            ]);
-        }
+// Ensure a latest version exists (for threads/history panels)
+$latestVersion = $submission->latestVersion()->first();
+if (!$latestVersion) {
+    $latestVersion = Version::create([
+        'submission_id' => $submission->id,
+        'body_html'     => '<p><em>Start writing…</em></p>',
+        'files_json'    => [],
+        'created_by'    => $viewer->id ?? null,
+    ]);
+}
         
-        // Determine initial HTML for hydration
-        $initialHtml = (string) (
-            $submission->working_html
-            ?: ($latestVersion->body_html ?? '<p><em>Start writing…</em></p>')
-        );
+// Determine initial HTML for hydration — always use rich HTML
+$initialHtml = (string) ($latestVersion->body_html ?? '<p><em>Start writing…</em></p>');
 
         // Build thread list for the right pane (eager-load what the UI needs)
         $threads = \App\Models\Comment::whereHas('version', function ($q) use ($submission) {
@@ -154,15 +152,16 @@ return view($useV2 ? 'workspace' : 'workspace_v3', $data);
             $submission = \App\Models\Submission::with('latestVersion')->findOrFail($sid);
         }
 
-        // Ensure a version exists
-        $version = $submission->latestVersion()->first();
-        if (!$version) {
-            $version = \App\Models\Version::create([
-                'submission_id' => $submission->id,
-                'body_html'     => '<p><em>Start writing…</em></p>',
-                'files_json'    => [],
-            ]);
-        }
+// Ensure a version exists
+$version = $submission->latestVersion()->first();
+if (!$version) {
+    $version = \App\Models\Version::create([
+        'submission_id' => $submission->id,
+        'body_html'     => '<p><em>Start writing…</em></p>',
+        'files_json'    => [],
+        'created_by'    => $user->id ?? null,
+    ]);
+}
 
         // --- Revision handshake ---
         $clientRev = (int) ($data['rev'] ?? 0);
@@ -201,22 +200,26 @@ return view($useV2 ? 'workspace' : 'workspace_v3', $data);
             ], 409);
         }
 
-        // Update current working draft (no new Version snapshot here)
-        $version->body_html = (string) $data['body_html'];
-        $version->save();
+// Update current working draft (no new Version snapshot here)
+$version->body_html = (string) $data['body_html'];
+$version->save();
 
-        // Bump working_rev after successful write
-        $submission->working_rev = $serverRev + 1;
-        $submission->save();
+// Mirror into submission so hydration uses exact rich HTML (images persist)
+$submission->working_html = (string) $data['body_html'];
+$submission->working_body = $this->htmlToPlain((string) $data['body_html']);
 
-        return response()->json([
-            'ok'            => true,
-            'rev'           => (int) $submission->working_rev,
-            'submission_id' => (int) $submission->id,
-            'version_id'    => (int) $version->id,
-            'snapshot'      => false,
-        ]);
-    }
+// Bump working_rev after successful write
+$submission->working_rev = $serverRev + 1;
+$submission->save();
+
+return response()->json([
+    'ok'            => true,
+    'rev'           => (int) $submission->working_rev,
+    'submission_id' => (int) $submission->id,
+    'version_id'    => (int) $version->id,
+    'snapshot'      => false,
+]);
+}
 
     /**
      * GET /workspace/{type}/history
@@ -257,6 +260,7 @@ $versions = Version::where('submission_id', $submission->id)
             'id'               => $v->id,
             'created_at'       => $v->created_at,
             'created_at_human' => optional($v->created_at)->diffForHumans(),
+            'created_at_full'  => optional($v->created_at)->format('Y-m-d H:i'),
             'body_html'        => $v->body_html,
             'summary'          => $summary,
             'by_role'          => strtolower(optional($v->author)->role ?? 'student'),
@@ -264,15 +268,12 @@ $versions = Version::where('submission_id', $submission->id)
         ];
     });
 
-        if ($request->wantsJson()) {
-            return response()->json(['ok' => true, 'versions' => $versions]);
-        }
+if ($request->wantsJson()) {
+    return response()->json(['ok' => true, 'versions' => $versions]);
+}
 
         // Non-JSON fallback
-        return view('history', [
-            'type'     => $type,
-            'versions' => $versions,
-        ]);
+        return response()->json(['ok' => true, 'versions' => $versions]);
     }
 
     /**
@@ -628,119 +629,6 @@ $versions = Version::where('submission_id', $submission->id)
         );
     }
     
-    public function compare(Request $request, string $type, int $versionId)
-{
-    abort_unless(in_array($type, ['exhibition','essay'], true), 404);
-
-    $viewer = Auth::user();
-    if (!$viewer) return redirect('/login');
-
-    // Left = chosen version (with submission to locate "current")
-    $left = \App\Models\Version::with('submission:id,student_id,type')
-        ->where('id', $versionId)
-        ->firstOrFail();
-
-    abort_unless(optional($left->submission)->type === $type, 404);
-
-    $submission = $left->submission;
-    $right = $submission ? $submission->latestVersion()->first() : null;
-
-    // Student name for title
-    $student = null;
-    if ($submission && $submission->student_id) {
-        $student = \App\Models\User::find($submission->student_id);
-    }
-
-    $title = 'Compare — '.ucfirst($type).' — '.($student->name ?? 'Student').' — #'.$left->id.' vs current';
-    $esc = function ($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); };
-    $csrf = csrf_token();
-
-    // Inline HTML (kept like your other inline renderers)
-    return response()->make(
-        '<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>'.$esc($title).'</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#111;margin:16px}
-  h1{margin:0 0 12px}
-  .meta{color:#666;margin-bottom:16px}
-  .actions{margin:10px 0 18px;display:flex;gap:10px;align-items:center}
-  .btn{padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-  .pane{border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff}
-  .pane h2{margin:0 0 8px;font-size:14px;color:#555}
-  .content{min-height:200px}
-  @media (max-width:900px){.grid{grid-template-columns:1fr}}
-</style>
-</head>
-<body>
-  <h1>'.$esc($title).'</h1>
-  <div class="meta">Left = version #'.$left->id.' ('.$esc(optional($left->created_at)->format('Y-m-d H:i')).'), Right = current</div>
-
-  <div class="actions">
-    <button id="wk3-restore" class="btn">Restore this version</button>
-    <small id="wk3-restore-status" style="color:#666;"></small>
-  </div>
-
-  <div class="grid">
-    <div class="pane">
-      <h2>Version #'.$left->id.'</h2>
-      <div class="content">'.$left->body_html.'</div>
-    </div>
-    <div class="pane">
-      <h2>Current</h2>
-      <div class="content">'.($right?->body_html ?? '<em>No current version.</em>').'</div>
-    </div>
-  </div>
-
-  <script>
-  (function () {
-    var btn = document.getElementById("wk3-restore");
-    var status = document.getElementById("wk3-restore-status");
-    if (!btn) return;
-
-    btn.addEventListener("click", async function () {
-      if (!confirm("Restore this version over the working draft?")) return;
-      status.textContent = "Restoring…";
-
-      try {
-        const res = await fetch("/workspace/'. $type .'/restore/'. $left->id .'", {
-          method: "POST",
-          credentials: "same-origin",
-          headers: {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-            "X-Requested-With": "XMLHttpRequest",
-            "X-CSRF-TOKEN": "'.$csrf.'"
-          },
-          body: JSON.stringify({})
-        });
-
-        if (!res.ok) {
-          let msg = "";
-          try { msg = await res.text(); } catch (e) {}
-          status.textContent = "Error: " + (msg || ("HTTP " + res.status));
-          return;
-        }
-
-        status.textContent = "Restored. Redirecting…";
-        location.href = "/workspace/'. $type .'";
-      } catch (e) {
-        console.error(e);
-        status.textContent = "Network error";
-      }
-    });
-  })();
-  </script>
-</body>
-</html>',
-        200,
-        ['Content-Type' => 'text/html; charset=UTF-8']
-    );
-}
 private function htmlToPlain(string $html): string
 {
     $s = preg_replace('~<\s*br\s*/?\s*>~i', "\n", $html);
@@ -758,7 +646,7 @@ private function htmlToPlain(string $html): string
  */
 public function upload(Request $request, string $type)
 {
-    // Accept either "image" or "file" (some toolbars use "file")
+    // Accept either "image" or "file" (some toolbars send "file")
     $request->validate([
         'image' => 'sometimes|image|max:4096',
         'file'  => 'sometimes|image|max:4096',
@@ -774,7 +662,7 @@ public function upload(Request $request, string $type)
 
     $hash = sha1_file($uploaded->getRealPath());
     $ext  = strtolower($uploaded->getClientOriginalExtension());
-    $safeExt = in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif']) ? $ext : 'jpg';
+    $safeExt = in_array($ext, ['jpg','jpeg','png','webp','gif']) ? $ext : 'jpg';
 
     $dir  = "public/tok/{$studentId}/images";
     $path = "{$dir}/{$hash}.{$safeExt}";
@@ -784,24 +672,18 @@ public function upload(Request $request, string $type)
     }
 
     if (!Storage::exists($path)) {
-        // ✅ Intervention Image v3 API
-        $img = \Intervention\Image\Laravel\Facades\Image::read($uploaded->getRealPath())
-            ->orient()            // auto-rotate by EXIF
-            ->scale(width: 1600); // constrain width, keep aspect
+        // Read → orient → scale down to max width 1600 (keep aspect)
+        $img = Image::read($uploaded->getRealPath())
+            ->orient()
+            ->scale(width: 1600);
 
-        // Encode to the chosen format
+        // Encode by chosen extension
         switch ($safeExt) {
-            case 'webp':
-                $binary = $img->toWebp(85);
-                break;
-            case 'png':
-                $binary = $img->toPng();
-                break;
+            case 'webp': $binary = $img->toWebp(85); break;
+            case 'png':  $binary = $img->toPng();    break; // lossless
             case 'jpg':
             case 'jpeg':
-            default:
-                $binary = $img->toJpeg(85);
-                break;
+            default:     $binary = $img->toJpeg(85);
         }
 
         Storage::put($path, (string) $binary);
