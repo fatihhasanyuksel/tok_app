@@ -13,33 +13,35 @@ class Student extends Model
         'first_name',
         'last_name',
         'email',
-        'teacher_id',      // link each student to a teacher
-        'parent_name',     // ✅ new: parent's full name
-        'parent_email',    // ✅ new: parent's email
-        'parent_phone',    // ✅ new: parent's phone number
+        'teacher_id',
+        'parent_name',
+        'parent_email',
+        'parent_phone',
     ];
 
-    /**
-     * Relationship: a student can have many reflections.
-     */
+    /** A student can have many reflections. */
     public function reflections()
     {
         return $this->hasMany(\App\Models\Reflection::class);
     }
 
-    /**
-     * Relationship: each student belongs to one teacher.
-     */
+    /** Each student belongs to one teacher. */
     public function teacher()
     {
+        // uses teacher_id by convention
         return $this->belongsTo(\App\Models\Teacher::class);
     }
 
-    /**
-     * Accessor: combine first and last name for convenience.
-     */
+    /** Convenience: "First Last" */
     public function getNameAttribute(): string
     {
         return trim("{$this->first_name} {$this->last_name}");
+    }
+
+    /** ✅ New: canonical label for the supervisor pill */
+    public function getSupervisorLabelAttribute(): string
+    {
+        // Teachers table has a single `name` column
+        return $this->teacher?->name ?? 'Unassigned';
     }
 }

@@ -579,3 +579,27 @@ Stack trace:
   thrown in /home/australi/tok_app/vendor/laravel/framework/src/Illuminate/Foundation/Configuration/ApplicationBuilder.php on line 152
 [28-Oct-2025 22:47:51 UTC] PHP Fatal error:  Cannot declare class App\Models\Student, because the name is already in use in /home/australi/tok_app/app/Http/Controllers/Admin/StudentController.php on line 8
 [04-Nov-2025 16:57:15 Asia/Dubai] PHP Fatal error:  Cannot use Illuminate\Support\Str as Str because the name is already in use in /home/australi/tok_app/storage/framework/views/3abd001d4a549316b3901fca966f417d.php on line 16
+[08-Nov-2025 03:47:06 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94
+[08-Nov-2025 03:47:18 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94
+[08-Nov-2025 03:53:18 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94
+[08-Nov-2025 03:54:41 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94
+[08-Nov-2025 03:55:45 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94
+[08-Nov-2025 03:55:47 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94
+[08-Nov-2025 03:56:11 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94
+[08-Nov-2025 03:56:54 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94
+[08-Nov-2025 03:57:02 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94
+[08-Nov-2025 03:59:08 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94
+[08-Nov-2025 05:00:45 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94
+[08-Nov-2025 07:37:22 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94
+[08-Nov-2025 07:37:24 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94
+[08-Nov-2025 10:53:55 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94
+[08-Nov-2025 10:54:48 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94
+[08-Nov-2025 10:57:10 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94
+[08-Nov-2025 11:01:54 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94
+[08-Nov-2025 11:01:58 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94
+[08-Nov-2025 11:03:13 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94
+[08-Nov-2025 11:03:14 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94
+[08-Nov-2025 11:03:18 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94
+[08-Nov-2025 11:03:31 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94
+[08-Nov-2025 11:05:03 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94
+[08-Nov-2025 11:05:09 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94

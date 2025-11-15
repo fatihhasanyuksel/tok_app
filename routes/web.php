@@ -5,32 +5,33 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 
-// For targeted CSRF bypass on TipTap AJAX (used only where explicitly stated)
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken as FrameworkVerifyCsrf;
-use App\Http\Controllers\CheckpointStatusController; // NEW
+
+use App\Http\Middleware\EnsureRole;
+
 use App\Models\Teacher;
-use App\Http\Controllers\AuthController;  // Unified auth
+
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Admin\TeacherController as AdminTeacherController;
-use App\Http\Controllers\Admin\StudentController as AdminStudentController; // Admin Students
+use App\Http\Controllers\Admin\StudentController as AdminStudentController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\ThreadController;
 use App\Http\Controllers\ResourcesController;
 use App\Http\Controllers\GeneralMessageController;
 use App\Http\Controllers\StudentDashboardController;
 use App\Http\Controllers\StudentStartController;
+
+use App\Http\Controllers\CheckpointStatusController; // Checkpoints (statuses)
+use App\Http\Controllers\Admin\CheckpointStageController; // Admin stages
+
 // TipTap rich text API + Upload controller
 use App\Http\Controllers\Tok\RichTextController;
 use App\Http\Controllers\Tok\UploadController;
+
 // Persist PM positions
 use App\Http\Controllers\ThreadPositionsController;
-
-// ✅ NEW: Admin stages manager
-use App\Http\Controllers\Admin\CheckpointStageController;
-
-// Class-based role middleware (no alias)
-use App\Http\Middleware\EnsureRole;
 
 /*
 |--------------------------------------------------------------------------
@@ -73,10 +74,14 @@ Route::middleware('web')->group(function () {
 
     // Student start/resume submission (Exhibition or Essay)
     Route::post('/student/start/{type}', [StudentStartController::class, 'start'])
-        ->whereIn('type', ['exhibition', 'essay'])
+        ->whereIn('type', ['exhibition', 'essay', 'submission'])
         ->name('student.start');
 
-    // Shared workspace (view + draft save)
+    /*
+    |--------------------------------------------------------------------------
+    | Workspace V2/V3 unified (FeedbackController is the single backend)
+    |--------------------------------------------------------------------------
+    */
     Route::get('/workspace/{type}', [FeedbackController::class, 'workspace'])
         ->whereIn('type', ['exhibition', 'essay'])
         ->name('workspace.show');
@@ -84,12 +89,15 @@ Route::middleware('web')->group(function () {
     Route::post('/workspace/{type}/save', [FeedbackController::class, 'saveDraft'])
         ->whereIn('type', ['exhibition', 'essay'])
         ->name('workspace.save');
+        
+    Route::post('/workspace/{type}/upload', [FeedbackController::class, 'upload'])
+    ->whereIn('type', ['exhibition', 'essay'])
+    ->name('workspace.upload');
 
     Route::get('/workspace/{type}/history', [FeedbackController::class, 'history'])
         ->whereIn('type', ['exhibition', 'essay'])
         ->name('workspace.history');
 
-    // Export route
     Route::get('/workspace/{type}/export', [FeedbackController::class, 'export'])
         ->whereIn('type', ['exhibition', 'essay'])
         ->name('workspace.export');
@@ -98,6 +106,11 @@ Route::middleware('web')->group(function () {
         ->whereIn('type', ['exhibition', 'essay'])
         ->whereNumber('version')
         ->name('workspace.restore');
+    
+    Route::get('/workspace/{type}/version/{version}', [\App\Http\Controllers\FeedbackController::class, 'showVersion'])
+    ->whereIn('type', ['exhibition', 'essay'])
+    ->whereNumber('version')
+    ->name('workspace.version');
 });
 
 /*
@@ -125,6 +138,11 @@ Route::middleware(['web', 'auth'])->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['web', 'auth'])->group(function () {
+    // ✅ NEW: allow all logged-in users (student/teacher/admin) to create a thread
+    Route::post('/workspace/{type}/thread', [ThreadController::class, 'create'])
+        ->whereIn('type', ['exhibition', 'essay'])
+        ->name('thread.create');
+
     Route::get('/workspace/{type}/thread/{thread}', [ThreadController::class, 'show'])
         ->whereIn('type', ['exhibition', 'essay'])
         ->whereNumber('thread')
@@ -179,7 +197,7 @@ Route::middleware(['web', EnsureRole::class . ':admin'])->group(function () {
     Route::post('admin/students/{student}/reset-password', [AdminStudentController::class, 'resetPassword'])
         ->name('admin.students.reset');
 
-    // ✅ Admin: Checkpoint Stages Manager (non-breaking, additive)
+    // ✅ Admin: Checkpoint Stages Manager
     Route::prefix('admin/checkpoints/stages')
         ->name('admin.stages.')
         ->group(function () {
@@ -200,13 +218,10 @@ Route::middleware(['web', EnsureRole::class . ':admin'])->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['web', EnsureRole::class . ':teacher,admin'])->group(function () {
-    Route::post('/workspace/{type}/thread', [ThreadController::class, 'create'])
-        ->whereIn('type', ['exhibition', 'essay'])
-        ->name('thread.create');
-        
-// ✅ Teacher/Admin: update a student's checkpoint stage
+
+    // ✅ Teacher/Admin: update a student's checkpoint stage
     Route::post('/checkpoints/status', [CheckpointStatusController::class, 'update'])
-    ->name('checkpoints.status.update');
+        ->name('checkpoints.status.update');
 
     // Resolve a thread (teacher/admin only)
     Route::post('/workspace/{type}/thread/{thread}/resolve', [ThreadController::class, 'resolve'])
@@ -264,7 +279,6 @@ Route::middleware(['web', EnsureRole::class . ':teacher,admin'])->group(function
 | Session-auth; we also add a GET /api/threads/ping to verify this block is active.
 */
 Route::middleware(['web', 'auth'])->group(function () {
-    // Quick probe to confirm this group is active (remove later if you want)
     Route::get('/api/threads/ping', function () {
         return response()->json([
             'ok' => true,
@@ -273,12 +287,9 @@ Route::middleware(['web', 'auth'])->group(function () {
     })->name('threads.ping');
 
     // ✅ Persist ProseMirror positions for a thread
-    Route::patch(
-        '/api/threads/{thread}/positions',
-        [\App\Http\Controllers\ThreadPositionsController::class, 'update']
-    )
+    Route::patch('/api/threads/{thread}/positions', [ThreadPositionsController::class, 'update'])
         ->name('threads.positions.update')
-        ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+        ->withoutMiddleware([FrameworkVerifyCsrf::class])
         ->whereNumber('thread');
 });
 
@@ -320,7 +331,7 @@ Route::get('/tiptap-test', function () {
 */
 if (app()->environment('local') || env('ALLOW_DEV_ROUTES', false)) {
     Route::prefix('api/tok/test')
-        ->withoutMiddleware([FrameworkVerifyCsrf::class]) // no CSRF
+        ->withoutMiddleware([FrameworkVerifyCsrf::class])
         ->group(function () {
             Route::get('/docs/{owner_type}/{owner_id}', [RichTextController::class, 'show'])
                 ->where(['owner_type' => '[A-Za-z_-]+', 'owner_id' => '[0-9]+']);

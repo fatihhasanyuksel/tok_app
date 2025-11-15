@@ -28,12 +28,19 @@ class Kernel extends HttpKernel
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
             \Illuminate\Session\Middleware\StartSession::class,
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
-            // ✅ Use Laravel’s built-in CSRF middleware
+            // ✅ CSRF protection for web routes
             \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
 
         'api' => [
+            // ✅ Makes SPA/API requests share session/cookies when using Sanctum
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+
+            // ✅ Sensible API rate limiting
+            'throttle:api',
+
+            // ✅ Route model binding, etc.
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
     ];
@@ -77,7 +84,5 @@ class Kernel extends HttpKernel
         'teacher' => \App\Http\Middleware\EnsureTeacher::class,
         'admin'   => \App\Http\Middleware\EnsureAdmin::class,
         'role'    => \App\Http\Middleware\EnsureRole::class,
-
-        // ❌ Intentionally NOT defining 'nostore' here to remove the dependency
     ];
 }

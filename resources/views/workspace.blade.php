@@ -5,6 +5,18 @@
   <title>Workspace — {{ ucfirst($type) }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf-token" content="{{ csrf_token() }}">
+  <meta name="tok-autosave-rev" content="{{ config('tok.autosave_rev') ? '1' : '0' }}">
+<script>
+window.TOK_AUTOSAVE_REV = {{ config('tok.autosave_rev') ? 'true' : 'false' }};
+window.TOK_AUTOSAVE_BASE = window.TOK_AUTOSAVE_REV
+    ? '/api/tok/rev/docs'
+    : '/api/tok/docs';
+
+// These must be set explicitly from controller data
+window.TOK_OWNER_TYPE = @json($type ?? $owner_type ?? 'exhibition');
+window.TOK_OWNER_ID   = @json($submission->id ?? $owner_id ?? null);
+window.TOK_REV        = @json($submission->working_rev ?? 1);
+</script>
   <style>
     html, body { margin:0; padding:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; height:100%; background:#fff; }
     .topbar { padding:12px 16px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; gap:12px; position:relative; }
@@ -59,7 +71,7 @@
     .hist-meta { font-size:13px; color:#555; }
     .hist-snippet { font-size:13px; color:#333; margin-top:6px; max-height:5.2em; overflow:hidden; }
 
-    /* Messages dropdown */
+    /* Messages dropdown – now anchored to .topbar */
     #msg-panel { display:none; position:absolute; right:16px; top:56px; width:360px; max-height:60vh; overflow:auto; background:#fff; border:1px solid #e5e5e5; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.12); z-index:9999; padding:12px; }
 
     /* TipTap UI */
@@ -68,15 +80,16 @@
     .tt-btn[disabled] { opacity:.5; cursor:not-allowed; }
     .tt-btn.is-active { background:#e8f1ff; border-color:#cfe0ff; color:#0a2e6c; }
     .tt-sel { height:30px; padding:0 8px; border:1px solid #d0d7de; border-radius:6px; background:#fff; font-size:13px; }
-    .tt-wrap { border:1px solid #ddd; border-radius:8px; }
-    .tt-editor { min-height:65vh; padding:10px; border-top:1px solid #ddd; border-radius:0 0 8px 8px; }
-    .tt-editor:focus { outline:none; }
-    .tt-editor img { max-width:100%; height:auto; border-radius:6px; }
+    .tt-wrap { border: 1px solid #ddd; border-radius: 8px; }
+    .tt-editor { min-height: 80vh; padding: 16px 16px 28px; border-top: 1px solid #ddd; border-radius: 0 0 8px 8px; }
+    .tt-editor:focus { outline: none; }
+    .tt-editor img { display: block; max-width: 100%; height: auto; border-radius: 6px; margin: 8px 0 16px; }
+    .tt-editor .ProseMirror p:last-child { min-height: 1.5rem; }
 
     [hidden] { display:none !important; visibility:hidden !important; }
     #editor.force-hidden { display:none !important; }
 
-    /* --- TipTap highlight styling (only on active hover) --- */
+    /* TipTap hover highlight */
     .tok-range { background: transparent; border-bottom: 0; cursor: text; }
     .tok-range--active {
       background: rgba(255, 223, 109, 0.9);
@@ -106,30 +119,64 @@
   $createThreadUrl  = route('thread.create', ['type'=>$type] + ($studentIdParam ? ['student'=>$studentIdParam] : []));
   $role             = optional(Auth::user())->role;
   $isStaff          = in_array($role, ['teacher','admin'], true);
+
+  // Student-only pill
+  $isStudent = ($role === 'student');
+  $supervisorLabel = '';
+
+  if ($isStudent) {
+      // 1) Try the provided $student relation
+      $supervisorLabel = optional(optional($student)->teacher)->name ?? '';
+
+      // 2) Fallback: use $student->teacher_id (if present)
+      if ($supervisorLabel === '' && isset($student) && !empty($student->teacher_id)) {
+          $supervisorLabel = \App\Models\Teacher::where('id', $student->teacher_id)->value('name') ?? '';
+      }
+
+      // 3) Fallback: resolve via the submission’s owner
+      if ($supervisorLabel === '') {
+          $sid = $submission->student_id ?? null;
+          if ($sid) {
+              $supervisorLabel = \DB::table('students')
+                  ->leftJoin('teachers', 'teachers.id', '=', 'students.teacher_id')
+                  ->where('students.id', $sid)
+                  ->value('teachers.name') ?? '';
+          }
+      }
+
+      // 4) Final fallback: resolve via the authenticated student id
+      if ($supervisorLabel === '') {
+          $authId = optional(Auth::user())->id;
+          if ($authId) {
+              $supervisorLabel = \DB::table('students')
+                  ->leftJoin('teachers', 'teachers.id', '=', 'students.teacher_id')
+                  ->where('students.id', $authId)
+                  ->value('teachers.name') ?? '';
+          }
+      }
+
+      $supervisorLabel = trim((string) $supervisorLabel);
+  }
 @endphp
 
 <div class="topbar" id="topbar">
   <div style="display:flex; align-items:center; gap:8px;">
     <strong>Workspace: {{ ucfirst($type) }}</strong>
     <span class="badge">{{ $student->name }}</span>
-    @php
-      $isStudent = ($role === 'student');
-      $supervisorName = $isStudent
-        ? (optional($student->teacher)->name
-            ?? \DB::table('teachers')->where('id', $student->teacher_id)->value('name'))
-        : null;
-    @endphp
-    @if($isStudent)
+
+    @if ($isStudent)
       <span class="sup-pill">
-        Your ToK Supervisor: <strong>{{ $supervisorName ?: 'Unassigned' }}</strong>
+        Your ToK Supervisor:
+        <strong>{{ $supervisorLabel !== '' ? $supervisorLabel : 'Unassigned' }}</strong>
       </span>
     @endif
   </div>
 
+  <!-- Right side: controls (now INSIDE .topbar to anchor messages panel) -->
   <div style="display:flex; align-items:center; gap:8px;">
     <button type="button" class="pill" id="msg-toggle"><span>💬 Messages</span></button>
     <button type="button" class="btn secondary sm" @click="toggleThreads()" x-text="threadsOpen ? '▸ Hide threads' : '◂ Show threads'"></button>
-    <a class="btn secondary sm" style="margin-left:10px;" href="{{ route('resources.index') }}">📚 ToK Resources</a>
+    <a class="btn secondary sm" href="{{ route('resources.index') }}">📚 ToK Resources</a>
 
     @php
       $dashRoute = match ($role) {
@@ -149,22 +196,23 @@
       @csrf
       <button type="submit" class="btn secondary sm">Logout</button>
     </form>
-  </div>
 
-  <div id="msg-panel">
-    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;">
-      <strong>Messages</strong>
-      <button type="button" class="btn secondary sm" id="msg-close" style="padding:4px 8px;">Close</button>
-    </div>
-    <div id="msg-list"><p class="muted" style="margin:6px 0;">Loading…</p></div>
-    <form id="msg-form" style="margin-top:10px; display:none;">
-      @csrf
-      <textarea name="body" rows="3" placeholder="Type a message…" required
-        style="width:100%; padding:8px; border:1px solid #ccc; border-radius:8px;"></textarea>
-      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
-        <button type="submit" class="btn">Send</button>
+    <!-- Messages panel anchored to the bar -->
+    <div id="msg-panel">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;">
+        <strong>Messages</strong>
+        <button type="button" class="btn secondary sm" id="msg-close" style="padding:4px 8px;">Close</button>
       </div>
-    </form>
+      <div id="msg-list"><p class="muted" style="margin:6px 0;">Loading…</p></div>
+      <form id="msg-form" style="margin-top:10px; display:none;">
+        @csrf
+        <textarea name="body" rows="3" placeholder="Type a message…" required
+          style="width:100%; padding:8px; border:1px solid #ccc; border-radius:8px;"></textarea>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
+          <button type="submit" class="btn">Send</button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 
@@ -293,35 +341,30 @@
             <div class="list">
               @foreach ($threads as $t)
                 @php
-    // Unified, safe thread status logic (no "Awaiting Reply")
-    $resolved = (bool) ($t->is_resolved ?? false);
-
-    $label = 'Awaiting Teacher';
-    [$bg, $fg] = ['#fff4e5', '#8a5a00']; // amber (default)
-
-    if ($resolved) {
-        $label = 'Resolved';
-        [$bg, $fg] = ['#e6ffed', '#135f26']; // green
-    } else {
-        try {
-            $lastMsg = \App\Models\CommentMessage::with('author:id,role')
-                ->where('comment_id', $t->id)
-                ->orderBy('created_at', 'desc')
-                ->first();
-
-            $lastRole = strtolower(optional(optional($lastMsg)->author)->role ?? '');
-            if (in_array($lastRole, ['teacher','admin'], true)) {
-                $label = 'Awaiting Student';
-                [$bg, $fg] = ['#e8f1ff', '#0a2e6c']; // blue
-            } else {
-                $label = 'Awaiting Teacher';
-                [$bg, $fg] = ['#fff4e5', '#8a5a00']; // amber
-            }
-        } catch (\Throwable $e) {
-            // Fallback already set
-        }
-    }
-@endphp
+                  // Unified, safe thread status logic
+                  $resolved = (bool) ($t->is_resolved ?? false);
+                  $label = 'Awaiting Teacher';
+                  [$bg, $fg] = ['#fff4e5', '#8a5a00']; // amber (default)
+                  if ($resolved) {
+                      $label = 'Resolved';
+                      [$bg, $fg] = ['#e6ffed', '#135f26']; // green
+                  } else {
+                      try {
+                          $lastMsg = \App\Models\CommentMessage::with('author:id,role')
+                              ->where('comment_id', $t->id)
+                              ->orderBy('created_at', 'desc')
+                              ->first();
+                          $lastRole = strtolower(optional(optional($lastMsg)->author)->role ?? '');
+                          if (in_array($lastRole, ['teacher','admin'], true)) {
+                              $label = 'Awaiting Student';
+                              [$bg, $fg] = ['#e8f1ff', '#0a2e6c']; // blue
+                          } else {
+                              $label = 'Awaiting Teacher';
+                              [$bg, $fg] = ['#fff4e5', '#8a5a00']; // amber
+                          }
+                      } catch (\Throwable $e) { /* noop */ }
+                  }
+                @endphp
 
                 <div class="thread-card">
                   <div>
@@ -330,28 +373,20 @@
                     </span>
 
                     @if(!empty($t->selection_text))
-  @php
-    $raw = (string) ($t->selection_text ?? '');
+                      @php
+                        $raw = (string) ($t->selection_text ?? '');
+                        $raw = preg_replace('/\x{00A0}/u', ' ', $raw);
+                        $raw = str_replace("\xC2\xA0", ' ', $raw);
+                        $raw = html_entity_decode($raw, ENT_QUOTES, 'UTF-8');
+                        $raw = preg_replace('/[ \t]+/u', ' ', $raw);
+                        $sel = trim($raw, " \t\n\r\0\x0B\xC2\xA0\"“”'");
+                        $sel = \Illuminate\Support\Str::limit($sel, 140, '…');
+                      @endphp
 
-    // Normalize NBSPs to normal spaces (both literal U+00A0 and its UTF-8 bytes)
-    $raw = preg_replace('/\x{00A0}/u', ' ', $raw);
-    $raw = str_replace("\xC2\xA0", ' ', $raw);
-
-    // Decode entities (&quot; etc.) and collapse multiple spaces/tabs
-    $raw = html_entity_decode($raw, ENT_QUOTES, 'UTF-8');
-    $raw = preg_replace('/[ \t]+/u', ' ', $raw);
-
-    // Trim spaces + any received quotes from ends
-    $sel = trim($raw, " \t\n\r\0\x0B\xC2\xA0\"“”'");
-
-    // Limit for the card
-    $sel = \Illuminate\Support\Str::limit($sel, 140, '…');
-  @endphp
-
-  <div class="sel" data-thread-id="{{ $t->id }}" style="margin:6px 0; padding:4px 8px; text-indent:0; line-height:1.3;">
-    <em class="sel-q">{{ $sel }}</em>
-  </div>
-@endif
+                      <div class="sel" data-thread-id="{{ $t->id }}" style="margin:6px 0; padding:4px 8px; text-indent:0; line-height:1.3;">
+                        <em class="sel-q">{{ $sel }}</em>
+                      </div>
+                    @endif
 
                     <span class="muted" title="{{ optional($t->created_at)->setTimezone('Asia/Dubai')->format('Y-m-d H:i') }}">
                       {{ $t->created_at?->diffForHumans() }}
@@ -440,7 +475,7 @@ function hybridPane(){
 </script>
 
 <script>
-/* Messages + autosave + history (autosave made robust) */
+/* Messages + autosave + history */
 window.MSG = { type: '{{ $type }}', submissionId: {{ $submission->id }} };
 (function () {
   const panel   = document.getElementById('msg-panel');
@@ -480,12 +515,36 @@ window.MSG = { type: '{{ $type }}', submissionId: {{ $submission->id }} };
       });
       if(!res.ok) throw new Error('HTTP '+res.status); return res.json();
     }
-    toggle.addEventListener('click',(e)=>{ e.preventDefault(); if(panel.style.display==='none'||panel.style.display===''){ panel.style.display='block'; loadMessages(); } else { panel.style.display='none'; } });
+    toggle.addEventListener('click',(e)=>{ e.preventDefault(); panel.style.display = (panel.style.display==='none'||panel.style.display==='') ? 'block' : 'none'; if(panel.style.display==='block') loadMessages(); });
     closeBt.addEventListener('click',()=>{ panel.style.display='none'; });
-    form.addEventListener('submit', async (e)=>{ e.preventDefault(); const ta=form.querySelector('textarea[name="body"]'); const body=(ta.value||'').trim(); if(!body) return;
-      try{ await send(body); ta.value=''; await loadMessages(); }catch(err){ console.error(err); alert('Failed to send message.'); } });
 
-    document.addEventListener('click',(evt)=>{ const topbar=document.getElementById('topbar'); const inside=topbar && topbar.contains(evt.target); if(!inside) panel.style.display='none'; });
+    // Click-away only hides when clicking outside the topbar (now correct)
+    document.addEventListener('click',(evt)=>{
+      const topbar=document.getElementById('topbar');
+      const inside=topbar && topbar.contains(evt.target);
+      if(!inside) panel.style.display='none';
+    });
+
+    form.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const ta=form.querySelector('textarea[name="body"]');
+      const body=(ta.value||'').trim();
+      if(!body) return;
+      try{
+        // Optimistic append (snappy UX)
+        const now=new Date().toISOString();
+        const optimistic = { created_at: now, body };
+        const cur = list.innerHTML;
+        render([optimistic]); list.innerHTML += cur;
+
+        await send(body);
+        ta.value='';
+        await loadMessages();
+      }catch(err){
+        console.error(err);
+        alert('Failed to send message.');
+      }
+    });
   }
 
   const reqBtn=document.getElementById('req-feedback-btn');
@@ -512,73 +571,124 @@ window.MSG = { type: '{{ $type }}', submissionId: {{ $submission->id }} };
     });
   }
 
-  /* Autosave — robust (flush on unload and before thread submit) */
+  /* Autosave — robust + revision-aware */
   (function autosaveSetup(){
     const editorPlain = document.getElementById('editor');
     const editorHtml  = document.getElementById('body_html');
-    const badge=document.getElementById('autosave-status');
-    if(!editorHtml||!badge) return;
+    const badge = document.getElementById('autosave-status');
+    if (!editorHtml || !badge) return;
 
-    const ownerType="{{ $type }}";
-    const ownerId={{ $submission->id }};
-    const autosaveUrl=`/api/tok/docs/${ownerType}/${ownerId}`;
+    const base = (window.TOK_AUTOSAVE_BASE || '/api/tok/docs').replace(/\/+$/,'');
+    const ownerType = window.TOK_OWNER_TYPE || "{{ $type }}";
+    const ownerId   = window.TOK_OWNER_ID   || {{ $submission->id }};
+    const autosaveUrl = `${base}/${encodeURIComponent(ownerType)}/${encodeURIComponent(ownerId)}`;
 
-    let timer=null, lastSaved=editorHtml.value, inFlight=false, lastSaveTs=0, queued=false;
-    const THROTTLE_MS=20000;
+    const csrf = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+
+    let timer = null, lastSaved = editorHtml.value, inFlight = false, lastSaveTs = 0, queued = false;
+    const THROTTLE_MS = 20000;
 
     function show(text){ badge.style.display=''; badge.textContent=text; }
-    function hideSoon(){ setTimeout(()=>{ badge.style.display='none'; },1000); }
+    function hideSoon(){ setTimeout(()=>{ badge.style.display='none'; }, 1200); }
 
-    async function doSave(throttled=true, opts={}) {
-      const { keepalive=false, force=false } = opts;
-      if(inFlight){ queued=true; return; }
+    async function doSave(throttled = true, opts = {}) {
+      const { keepalive = false, force = false } = opts;
+
+      if (inFlight) { queued = true; return; }
       const bodyHtml = editorHtml.value;
-      if(!force && bodyHtml===lastSaved) return;
 
-      if(throttled && !force){
-        const now=Date.now(), since=now-lastSaveTs;
-        if(since<THROTTLE_MS){ queued=true; const wait=Math.max(THROTTLE_MS-since,1); if(timer) clearTimeout(timer); timer=setTimeout(()=>doSave(true),wait); return; }
+      if (!force && bodyHtml === lastSaved) return;
+
+      if (throttled && !force) {
+        const now = Date.now(), since = now - lastSaveTs;
+        if (since < THROTTLE_MS) {
+          queued = true;
+          const wait = Math.max(THROTTLE_MS - since, 1);
+          if (timer) clearTimeout(timer);
+          timer = setTimeout(() => doSave(true), wait);
+          return;
+        }
       }
 
-      inFlight=true; show('Saving…');
-      try{
-        const payload = { html: bodyHtml, plain: editorPlain ? editorPlain.value : undefined };
-        const json = JSON.stringify(payload);
-        let ok=false;
+      inFlight = true; show('Saving…');
 
+      try {
+        const payload = {
+          html: bodyHtml,
+          plain: editorPlain ? editorPlain.value : undefined,
+          ...(window.TOK_AUTOSAVE_REV ? { rev: String(window.TOK_REV || 1) } : {})
+        };
+        const json = JSON.stringify(payload);
+
+        // Try Beacon when keepalive (page unload)
         if (keepalive && navigator.sendBeacon) {
-          ok = navigator.sendBeacon(autosaveUrl, new Blob([json], { type: 'application/json' }));
-          if (!ok) {
-            const res = await fetch(autosaveUrl,{ method:'PATCH', headers:{'Content-Type':'application/json'}, body:json, credentials:'same-origin', keepalive:true });
-            ok = res.ok;
+          const ok = navigator.sendBeacon(autosaveUrl, new Blob([json], { type: 'application/json' }));
+          if (ok) {
+            lastSaved = bodyHtml; lastSaveTs = Date.now(); show('Saved'); hideSoon(); inFlight=false;
+            if (queued) { queued=false; setTimeout(()=>doSave(true),0); }
+            return;
           }
-        } else {
-          const res=await fetch(autosaveUrl,{ method:'PATCH', headers:{'Content-Type':'application/json'}, credentials:'same-origin', body:json });
-          ok = res.ok;
         }
 
-        if(!ok) throw new Error('Autosave failed');
-        lastSaved=bodyHtml; lastSaveTs=Date.now(); show('Saved'); hideSoon();
-      }catch(e){ console.error(e); show('Save failed — will retry'); }
-      finally{ inFlight=false; if(queued){ queued=false; setTimeout(()=>doSave(true),0); } }
-    }
-    function scheduleSave(){ show('Saving…'); if(timer) clearTimeout(timer); timer=setTimeout(()=>doSave(true),1200); }
+        const res = await fetch(autosaveUrl, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
+          body: json,
+          credentials: 'same-origin',
+          ...(keepalive ? { keepalive: true } : {})
+        });
 
-    editorHtml.addEventListener('input',scheduleSave);
-    editorHtml.addEventListener('blur',()=>doSave(false));
-    document.addEventListener('keydown',(e)=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){ e.preventDefault(); doSave(false); } });
-    document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') doSave(false,{keepalive:true,force:true}); });
-    window.addEventListener('beforeunload',()=>{ doSave(false,{keepalive:true,force:true}); });
+        if (res.status === 409) {
+          const data = await res.json().catch(() => ({}));
+          if (data.server_rev) window.TOK_REV = data.server_rev;
+          if (data.server_html && window.TIPTAP?.commands?.setContent) {
+            window.TIPTAP.commands.setContent(data.server_html, false);
+            if (editorHtml) editorHtml.value = data.server_html;
+          }
+          show('Updated to latest'); hideSoon();
+          lastSaved = editorHtml.value; lastSaveTs = Date.now();
+          return;
+        }
+
+        if (!res.ok) throw new Error('Autosave failed with ' + res.status);
+
+        const data = await res.json().catch(() => ({}));
+        if (data && (data.rev || data.working_rev)) {
+          window.TOK_REV = Number(data.rev || data.working_rev) || window.TOK_REV || 1;
+        }
+
+        lastSaved = bodyHtml; lastSaveTs = Date.now();
+        show('Saved'); hideSoon();
+      } catch (e) {
+        console.error(e);
+        show('Save failed — will retry');
+      } finally {
+        inFlight = false;
+        if (queued) { queued = false; setTimeout(() => doSave(true), 0); }
+      }
+    }
+
+    function scheduleSave(){ if (timer) clearTimeout(timer); timer = setTimeout(() => doSave(true), 800); }
+
+    editorHtml.addEventListener('input', scheduleSave);
+    editorHtml.addEventListener('blur', () => doSave(false));
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); doSave(false); }
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') doSave(false, { keepalive: true, force: true });
+    });
+    window.addEventListener('beforeunload', () => { doSave(false, { keepalive: true, force: true }); });
 
     // Force-save before thread submit (selection composer)
     document.addEventListener('submit', (e) => {
       if (e.target && e.target.closest('.sel-card')) {
-        try { doSave(false, { keepalive:true, force:true }); } catch(_) {}
+        try { doSave(false, { keepalive: true, force: true }); } catch (_) {}
       }
     });
   })();
 
-  /* History modal (restore pushes TipTap HTML) */
+  /* History modal */
   (function historySetup(){
     const btn=document.getElementById('history-btn');
     const backDrop=document.getElementById('hist-backdrop');
@@ -653,7 +763,7 @@ window.MSG = { type: '{{ $type }}', submissionId: {{ $submission->id }} };
     closeBtn.addEventListener('click',()=> backDrop.style.display='none');
     backDrop.addEventListener('click',(e)=>{ if(e.target===backDrop) backDrop.style.display='none'; });
   })();
-})();  <!-- single close for the outer IIFE -->
+})();  // single close for the outer IIFE
 </script>
 
 <!-- TipTap (ESM) -->
@@ -845,55 +955,12 @@ window.MSG = { type: '{{ $type }}', submissionId: {{ $submission->id }} };
   window.TOK_THREADS = @json($threadPayload);
 </script>
 
-<script>
-  // Right pane hover → left highlight (works for list and open thread)
-  (function installTokHoverDelegation(){
-    function ready(){ return !!(window.TOK_HOVER); }
-
-    function bind(){
-      const right = document.querySelector('.right');
-      if (!right || !ready()) return;
-
-      // Mouseover: find nearest [data-thread-id] and activate
-      right.addEventListener('mouseover', (e) => {
-        const el = e.target.closest('[data-thread-id]');
-        if (!el || !right.contains(el)) return;
-        const id = Number(el.getAttribute('data-thread-id'));
-        if (id) window.TOK_HOVER.set(id);
-      });
-
-      // Mouseout: clear when the pointer leaves a [data-thread-id] element
-      right.addEventListener('mouseout', (e) => {
-        // Clear only when leaving the element that had the id
-        const el = e.target.closest('[data-thread-id]');
-        if (!el) return;
-        // If we moved to another descendant with the same id, keep it
-        const to = e.relatedTarget && right.contains(e.relatedTarget)
-          ? e.relatedTarget.closest('[data-thread-id]')
-          : null;
-        if (!to || to.getAttribute('data-thread-id') !== el.getAttribute('data-thread-id')) {
-          window.TOK_HOVER.clear();
-        }
-      });
-    }
-
-    // Try immediately and also after Alpine/AJAX updates
-    const tryBind = () => { try { bind(); } catch (_) {} };
-    document.addEventListener('DOMContentLoaded', tryBind);
-    setTimeout(tryBind, 0);
-    setTimeout(tryBind, 300);
-    document.addEventListener('alpine:initialized', tryBind);
-    document.addEventListener('alpine:updated', tryBind);
-  })();
-</script>
-
 <script type="module">
-  import { Plugin, PluginKey } from 'https://esm.sh/prosemirror-state@1.4.3';
-  import { Decoration, DecorationSet } from 'https://esm.sh/prosemirror-view@1.33.8';
+  import { Plugin, PluginKey } from 'https://esm.sh/@tiptap/pm/state@2.6.6';
+  import { Decoration, DecorationSet } from 'https://esm.sh/@tiptap/pm/view@2.6.6';
 
   const key = new PluginKey('tok-comments');
 
-  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
   function plainLen(doc, pos) { return doc.textBetween(0, pos, '\n', '\n').length; }
   function offsetToPos(doc, targetLen) {
     const maxPos = doc.content.size;
@@ -923,7 +990,6 @@ window.MSG = { type: '{{ $type }}', submissionId: {{ $submission->id }} };
     }
   }
 
-  // ONLY draw the active range (hovered from right pane)
   function buildDecos(doc, items, activeId) {
     if (!activeId) return DecorationSet.empty;
     const it = (items || []).find(x => x && x.id === activeId);
@@ -977,7 +1043,6 @@ window.MSG = { type: '{{ $type }}', submissionId: {{ $submission->id }} };
             });
           }
 
-          // Rebuild only when necessary
           if (tr.docChanged || (meta && 'activeId' in meta)) {
             decos = buildDecos(newState.doc, items, activeId);
           } else {
@@ -987,67 +1052,62 @@ window.MSG = { type: '{{ $type }}', submissionId: {{ $submission->id }} };
           return { items, decos, activeId };
         },
       },
-      props: {
-        decorations(state) { return key.getState(state)?.decos || null; },
-      },
+      props: { decorations(state) { return key.getState(state)?.decos || null; } },
     });
   }
 
-  // --- bootstrap with TipTap instance --------------------------------------
-const ed = window.TIPTAP;
-if (!ed) {
-  console.error('TipTap editor not found (window.TIPTAP).');
-} else if (!window.TOK_THREADS) {
-  console.warn('TOK_THREADS not found; highlights will be empty.');
-} else {
-  ed.registerPlugin(TokCommentsPlugin(window.TOK_THREADS));
+  const ed = window.TIPTAP;
+  if (!ed) {
+    console.error('TipTap editor not found (window.TIPTAP).');
+  } else if (!window.TOK_THREADS) {
+    console.warn('TOK_THREADS not found; highlights will be empty.');
+  } else {
+    ed.registerPlugin(TokCommentsPlugin(window.TOK_THREADS));
 
-  // Helpers for autoscroll-to-highlight
-  function getPluginState() {
-    try { return key.getState(ed.view.state) || null; } catch { return null; }
-  }
-  function getThreadById(id) {
-    const st = getPluginState();
-    if (!st || !Array.isArray(st.items)) return null;
-    return st.items.find(it => Number(it.id) === Number(id)) || null;
-  }
-  function scrollToRange(view, from, to) {
-    try {
-      const container = document.querySelector('.left');
-      if (!container) return;
-      if (typeof from !== 'number' || typeof to !== 'number') return;
-
-      const mid = Math.floor((from + to) / 2);
-      const maxPos = view.state.doc.content.size;
-      const safeMid = Math.max(1, Math.min(mid, maxPos - 1));
-      const coords = view.coordsAtPos(safeMid);
-
-      const cRect = container.getBoundingClientRect();
-      const currentTop = container.scrollTop;
-      const targetTop = currentTop + (coords.top - cRect.top) - (container.clientHeight / 2);
-
-      container.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
-    } catch (e) {
-      console.warn('Autoscroll failed:', e);
+    function getPluginState() {
+      try { return key.getState(ed.view.state) || null; } catch { return null; }
     }
-  }
+    function getThreadById(id) {
+      const st = getPluginState();
+      if (!st || !Array.isArray(st.items)) return null;
+      return st.items.find(it => Number(it.id) === Number(id)) || null;
+    }
+    function scrollToRange(view, from, to) {
+      try {
+        const container = document.querySelector('.left');
+        if (!container) return;
+        if (typeof from !== 'number' || typeof to !== 'number') return;
 
-  // Public hover API for right pane (now with autoscroll)
-  window.TOK_HOVER = {
-    set(id) {
-      const view = ed.view;
-      view.dispatch(view.state.tr.setMeta(key, { activeId: id }));
-      const th = getThreadById(id);
-      if (th && typeof th.pm_from === 'number' && typeof th.pm_to === 'number') {
-        scrollToRange(view, th.pm_from, th.pm_to);
+        const mid = Math.floor((from + to) / 2);
+        const maxPos = view.state.doc.content.size;
+        const safeMid = Math.max(1, Math.min(mid, maxPos - 1));
+        const coords = view.coordsAtPos(safeMid);
+
+        const cRect = container.getBoundingClientRect();
+        const currentTop = container.scrollTop;
+        const targetTop = currentTop + (coords.top - cRect.top) - (container.clientHeight / 2);
+
+        container.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+      } catch (e) {
+        console.warn('Autoscroll failed:', e);
       }
-    },
-    clear() {
-      const view = ed.view;
-      view.dispatch(view.state.tr.setMeta(key, { activeId: null }));
     }
-  };
-}
+
+    window.TOK_HOVER = {
+      set(id) {
+        const view = ed.view;
+        view.dispatch(view.state.tr.setMeta(key, { activeId: id }));
+        const th = getThreadById(id);
+        if (th && typeof th.pm_from === 'number' && typeof th.pm_to === 'number') {
+          scrollToRange(view, th.pm_from, th.pm_to);
+        }
+      },
+      clear() {
+        const view = ed.view;
+        view.dispatch(view.state.tr.setMeta(key, { activeId: null }));
+      }
+    };
+  }
 </script>
 </body>
 </html>

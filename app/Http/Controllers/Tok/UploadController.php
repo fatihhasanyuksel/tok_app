@@ -13,33 +13,37 @@ class UploadController extends Controller
     /**
      * POST /api/tok/uploads/images
      * FormData: file (image), owner_type, owner_id
-     * Returns: { url, width, height }
+     * Returns: { url, width, height, path }
      */
     public function store(Request $request)
     {
         $data = $request->validate([
-            'file'       => 'required|file|mimetypes:image/jpeg,image/png,image/webp|max:4096', // 4 MB
+            'file'       => 'required|file|mimetypes:image/jpeg,image/png,image/webp|max:5120', // 5 MB
             'owner_type' => 'required|string|in:exhibition,essay',
             'owner_id'   => 'required|integer|min:1',
         ]);
 
-        $this->authorizeAccess($data['owner_type'], (int)$data['owner_id']);
+        $this->authorizeAccess($data['owner_type'], (int) $data['owner_id']);
 
-        $file = $data['file'];
-        $ext  = strtolower($file->extension() ?: $file->guessExtension() ?: 'jpg');
+        /** @var \Illuminate\Http\UploadedFile $file */
+        $file = $request->file('file');
 
-        if (!in_array($ext, ['jpg','jpeg','png','webp'], true)) {
-            // Normalize uncommon extension guesses
+        // --- decide extension safely
+        $ext = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'jpg');
+        if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true)) {
             $ext = 'jpg';
         }
 
-        $filename = Str::uuid()->toString() . '.' . $ext;
-        $dir = "tok/{$data['owner_type']}/{$data['owner_id']}/images";
+        // --- fingerprinted filename + dated subfolders
+        $ym       = now()->format('Y/m');
+        $uuid     = Str::uuid()->toString();               // unique per upload
+        $filename = "{$uuid}.{$ext}";
+        $dir      = "tok/images/{$data['owner_type']}/{$data['owner_id']}/{$ym}";
 
-        // Save to the public disk so it serves from /storage/...
+        // Save to the "public" disk => storage/app/public/... (symlinked to /public/storage)
         $path = Storage::disk('public')->putFileAs($dir, $file, $filename);
 
-        // Attempt to read dimensions (safe fallback if unsupported)
+        // Read dimensions (best-effort)
         $width = $height = null;
         if (function_exists('getimagesize')) {
             try {
@@ -48,13 +52,16 @@ class UploadController extends Controller
                     $width  = $info[0] ?? null;
                     $height = $info[1] ?? null;
                 }
-            } catch (\Throwable $e) {}
+            } catch (\Throwable $e) {
+                // ignore
+            }
         }
 
         return response()->json([
-            'url'    => asset('storage/' . $path),
-            'width'  => $width,
-            'height' => $height,
+            'url'   => Storage::disk('public')->url($path), // e.g., /storage/...
+            'width' => $width,
+            'height'=> $height,
+            'path'  => $path,                                // optional housekeeping
         ], 201);
     }
 
@@ -67,5 +74,6 @@ class UploadController extends Controller
         if (!Auth::check()) {
             abort(401, 'Unauthenticated');
         }
+        // Future: check ownership/role for $ownerType/$ownerId
     }
 }

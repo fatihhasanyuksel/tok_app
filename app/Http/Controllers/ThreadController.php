@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -37,7 +38,7 @@ class ThreadController extends Controller
 
     /**
      * Create a new feedback thread (POST /workspace/{type}/thread).
-     * We only persist is_resolved (bool). "Awaiting" is derived from last message author.
+     * Canonical V3 path uses submission_id. Legacy V2 path accepts ?student=...
      */
     public function create(Request $request, string $type)
     {
@@ -46,29 +47,53 @@ class ThreadController extends Controller
         $viewer = $request->user();
         abort_unless($viewer, 401);
 
-        // Resolve the student this thread belongs to.
-        if (strtolower((string) $viewer->role) === 'student') {
-            $student = $viewer;
-        } else {
-            $studentId = (int) $request->query('student', 0);
-            abort_if($studentId <= 0, 404, 'Missing student id.');
-            $student = User::where('id', $studentId)->where('role', 'student')->first();
-            abort_unless($student, 404, 'Student not found.');
+        // --- Preferred (V3): submission_id in payload -------------------
+        $submissionId = (int) $request->input('submission_id', 0);
+
+        // --- Legacy (V2): ?student=... query param ----------------------
+        // If submission_id is not sent, resolve/create via student+type.
+        if ($submissionId <= 0) {
+            if (strtolower((string) $viewer->role) === 'student') {
+                $student = $viewer;
+            } else {
+                $studentId = (int) $request->query('student', 0);
+                abort_if($studentId <= 0, 404, 'Missing student id.');
+                $student = User::where('id', $studentId)->where('role', 'student')->first();
+                abort_unless($student, 404, 'Student not found.');
+            }
+
+            // Ensure a submission exists for this student+type
+            $submission = Submission::firstOrCreate(
+                ['student_id' => $student->id, 'type' => $type],
+                ['status' => 'draft']
+            );
+
+            $submissionId = (int) $submission->id;
         }
 
+        // Validate rest of payload (submission_id nullable since we may have just derived it)
         $data = $request->validate([
+            'submission_id'  => ['nullable', 'integer'],
             'selection_text' => ['nullable', 'string', 'max:255'],
             'body'           => ['required', 'string', 'min:1', 'max:4000'],
             'start_offset'   => ['nullable', 'integer', 'min:0'],
             'end_offset'     => ['nullable', 'integer', 'gte:start_offset'],
         ]);
 
-        // Ensure submission + latest version exist
-        $submission = Submission::firstOrCreate(
-            ['student_id' => $student->id, 'type' => $type],
-            ['status' => 'draft']
-        );
+        // Load submission (and verify type matches the route)
+        $submission = Submission::query()
+            ->whereKey($submissionId)
+            ->where('type', $type)
+            ->first();
 
+        abort_unless($submission, 404, 'Submission not found.');
+
+        // Authorization: students can only create threads on their own submission
+        if (strtolower((string) ($viewer->role ?? '')) === 'student') {
+            abort_unless((int) $submission->student_id === (int) $viewer->id, 403, 'Forbidden.');
+        }
+
+        // Ensure latest version exists
         $version = $submission->latestVersion()->first()
             ?: Version::create([
                 'submission_id' => $submission->id,
@@ -76,13 +101,20 @@ class ThreadController extends Controller
                 'files_json'    => [],
             ]);
 
+        // Normalize offsets (ignore invalid ranges)
+        $from = $data['start_offset'] ?? null;
+        $to   = $data['end_offset']   ?? null;
+        if (!is_int($from) || !is_int($to) || $to <= $from) {
+            $from = $to = null;
+        }
+
         // Create thread
         $thread = Comment::create([
             'version_id'     => $version->id,
             'author_id'      => $viewer->id,
             'selection_text' => $data['selection_text'] ?? null,
-            'start_offset'   => $data['start_offset'] ?? null,
-            'end_offset'     => $data['end_offset'] ?? null,
+            'start_offset'   => $from,
+            'end_offset'     => $to,
         ]);
 
         // First message
@@ -102,26 +134,22 @@ class ThreadController extends Controller
         // AJAX-friendly response
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
-                'ok'  => true,
-                'id'  => $thread->id,
-                'url' => route('thread.show', [
-                    'type'    => $type,
-                    'thread'  => $thread->id,
-                    'student' => (strtolower((string) $viewer->role) === 'student') ? null : $student->id,
-                ]),
+                'ok'         => true,
+                'id'         => $thread->id,
+                'thread'     => $thread->id,
+                'submission' => $submission->id,
             ], 201);
         }
 
         // Non-AJAX fallback
         return redirect()->route('thread.show', [
-            'type'    => $type,
-            'thread'  => $thread->id,
-            'student' => (strtolower((string) $viewer->role) === 'student') ? null : $student->id,
+            'type'   => $type,
+            'thread' => $thread->id,
         ])->with('ok', 'New feedback thread created.');
     }
 
     /**
-     * Show a single thread inside the workspace (returns full page or partial for side-pane).
+     * Show a single thread inside the workspace (returns full page or partial/JSON for side-pane).
      */
     public function show(Request $request, string $type, int $thread)
     {
@@ -148,6 +176,36 @@ class ThreadController extends Controller
 
         $latestVersion = $activeThread->version;
         $submission    = $latestVersion->submission;
+
+        // JSON for Workspace V3 side-pane
+        if ($request->wantsJson()) {
+            $ownerId      = optional($submission)->student_id;
+            $lastAuthorId = optional($activeThread->messages->last())->author_id;
+
+            $label = $activeThread->is_resolved
+                ? 'Resolved'
+                : (($lastAuthorId && $ownerId && (int)$lastAuthorId === (int)$ownerId)
+                    ? 'Awaiting Teacher'
+                    : 'Awaiting Student');
+
+            // tolerant to either schema
+            $pmFrom = $activeThread->pm_from ?? $activeThread->start_offset ?? null;
+            $pmTo   = $activeThread->pm_to   ?? $activeThread->end_offset   ?? null;
+
+            return response()->json([
+                'id'             => $activeThread->id,
+                'created_at'     => optional($activeThread->created_at)->format('Y-m-d H:i'),
+                'label'          => $label,
+                'selection_text' => $activeThread->selection_text,
+                'pm_from'        => $pmFrom,
+                'pm_to'          => $pmTo,
+                'messages'       => $activeThread->messages->map(fn($m) => [
+                    'author'     => ['name' => optional($m->author)->name],
+                    'body'       => $m->body,
+                    'created_at' => optional($m->created_at)->format('Y-m-d H:i'),
+                ])->values(),
+            ]);
+        }
 
         // Display student in header based on actual submission owner
         $studentDisplay = $submission && $submission->student_id
@@ -181,14 +239,20 @@ class ThreadController extends Controller
         }
 
         // Full workspace page
+        // Resolve teacher via the students table (users.* doesn't have teacher_id)
+        $studentEmail    = data_get($studentDisplay, 'email');
+        $teacherId       = DB::table('students')->where('email', $studentEmail)->value('teacher_id');
+        $supervisorLabel = DB::table('teachers')->where('id', $teacherId)->value('name') ?? 'Unassigned';
+
         return view('workspace', [
-            'type'          => $type,
-            'student'       => $studentDisplay,
-            'submission'    => $submission,
-            'latestVersion' => $latestVersion,
-            'thread'        => $activeThread,   // opens side pane in thread mode
-            'threads'       => $threads,        // list on the right
-            'general'       => $general,
+            'type'            => $type,
+            'student'         => $studentDisplay,
+            'submission'      => $submission,
+            'latestVersion'   => $latestVersion,
+            'thread'          => $activeThread,   // opens side pane in thread mode
+            'threads'         => $threads,        // list on the right
+            'general'         => $general,
+            'supervisorLabel' => $supervisorLabel,
         ]);
     }
 

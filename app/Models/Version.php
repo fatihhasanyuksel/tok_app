@@ -15,15 +15,16 @@ class Version extends Model
         'submission_id',
         'body_html',
         'files_json',
-        'is_milestone',   // NEW
-        'milestone_note', // NEW
+        'is_milestone',
+        'milestone_note',
+        'created_by',   // ✅ new
     ];
 
     protected $casts = [
-        'files_json'    => 'array',
-        'is_milestone'  => 'boolean', // NEW
-        'created_at'    => 'datetime',
-        'updated_at'    => 'datetime',
+        'files_json'   => 'array',
+        'is_milestone' => 'boolean',
+        'created_at'   => 'datetime',
+        'updated_at'   => 'datetime',
     ];
 
     public function submission(): BelongsTo
@@ -35,5 +36,11 @@ class Version extends Model
     public function student()
     {
         return $this->submission?->student();
+    }
+
+    // ✅ Who created this version (teacher / student / admin)
+    public function author()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'created_by');
     }
 }

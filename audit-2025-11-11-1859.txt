@@ -1,0 +1,96 @@
+### ROUTES (workspace/feedback/thread)
+  GET|HEAD        api/threads/ping ...................................................................... threads.ping
+  PATCH           api/threads/{thread}/positions ......... threads.positions.update › ThreadPositionsController@update
+  GET|HEAD        workspace/{type} ..................................... workspace.show › FeedbackController@workspace
+  GET|HEAD        workspace/{type}/compare/{version} .................. workspace.compare › FeedbackController@compare
+  GET|HEAD        workspace/{type}/export ............................... workspace.export › FeedbackController@export
+  GET|HEAD        workspace/{type}/general/{submission} ............... general.index › GeneralMessageController@index
+  POST            workspace/{type}/general/{submission} ............... general.store › GeneralMessageController@store
+  GET|HEAD        workspace/{type}/general/{submission}/unread ...... general.unread › GeneralMessageController@unread
+  GET|HEAD        workspace/{type}/history ............................ workspace.history › FeedbackController@history
+  POST            workspace/{type}/restore/{version} .................. workspace.restore › FeedbackController@restore
+  POST            workspace/{type}/save ................................ workspace.save › FeedbackController@saveDraft
+  POST            workspace/{type}/thread .................................... thread.create › ThreadController@create
+  GET|HEAD        workspace/{type}/thread/{thread} ............................... thread.show › ThreadController@show
+  GET|HEAD        workspace/{type}/thread/{thread}/poll .......................... thread.poll › ThreadController@poll
+  POST            workspace/{type}/thread/{thread}/reply ....................... thread.reply › ThreadController@reply
+  POST            workspace/{type}/thread/{thread}/resolve ................. thread.resolve › ThreadController@resolve
+  POST            workspace/{type}/thread/{thread}/typing .................... thread.typing › ThreadController@typing
+  GET|HEAD        workspace/{type}/thread/{thread}/typing ........ thread.typingStatus › ThreadController@typingStatus
+  GET|HEAD        workspace/{type}/version/{version} .............. workspace.version › FeedbackController@showVersion
+
+### SOURCE REFS (php + blade)
+./resources/views/workspace_v3.blade.php:353:          ? `/workspace/${TYPE}/save?submission_id=${encodeURIComponent(SUBMISSION)}`
+./resources/views/workspace_v3.blade.php:354:          : `/workspace/${TYPE}/save`;
+./resources/views/workspace_v3.blade.php:471:          const res = await fetch(`/workspace/${TYPE}/thread/${id}`, {
+./resources/views/workspace_v3.blade.php:509:        const url = `/workspace/${TYPE}/thread?submission_id=${encodeURIComponent(SUBMISSION)}`
+./resources/views/workspace_v3.blade.php:552:        const res = await fetch(`/workspace/${TYPE}/thread/${selectedThreadId}/reply`, {
+./resources/views/workspace_v3.blade.php:570:            const again = await fetch(`/workspace/${TYPE}/thread/${selectedThreadId}`, {
+./resources/views/workspace_v3.blade.php:578:          const again = await fetch(`/workspace/${TYPE}/thread/${selectedThreadId}`, {
+./resources/views/workspace_v3.blade.php:617:    ? `/workspace/${type}/export?student=${studentId}`
+./resources/views/workspace_v3.blade.php:618:    : `/workspace/${type}/export`; // students can self-export without param
+./resources/views/workspace_v3.blade.php:666:        const res = await fetch(`/workspace/${TYPE}/history`, {
+./resources/views/workspace_v3.blade.php:702:        location.href = `/workspace/${TYPE}/compare/${ver}`;
+./resources/views/workspace_v3.blade.php:716:    const res = await fetch(`/workspace/${TYPE}/restore/${ver}`, {
+./resources/views/workspace_v3.blade.php:729:      window.location.href = `/workspace/${TYPE}?restored=1`;
+./resources/views/workspace.blade.php:508:      try{ const data=await fetchJSON(`/workspace/${encodeURIComponent(c.type)}/general/${encodeURIComponent(c.sid)}`); render(data.messages||[]); form.style.display=''; }
+./resources/views/workspace.blade.php:513:      const res=await fetch(`/workspace/${encodeURIComponent(c.type)}/general/${encodeURIComponent(c.sid)}`,{
+./resources/views/workspace.blade.php:564:        const res=await fetch(`/workspace/{{ $type }}/general/{{ $submission->id }}`,{
+./resources/views/workspace.blade.php:739:        const url=`/workspace/{{ $type }}/restore/${id}{{ $studentIdParam ? ('?student='.$studentIdParam) : '' }}`;
+./app/Http/Controllers/FeedbackController.php:17:class FeedbackController extends Controller
+./app/Http/Controllers/FeedbackController.php:23:     * GET /workspace/{type}
+./app/Http/Controllers/FeedbackController.php:94:        return view('workspace_v3', [
+./app/Http/Controllers/FeedbackController.php:108:    // inside app/Http/Controllers/FeedbackController.php
+./app/Http/Controllers/FeedbackController.php:111:     * POST /workspace/{type}/save
+./app/Http/Controllers/FeedbackController.php:215:     * GET /workspace/{type}/history
+./app/Http/Controllers/FeedbackController.php:272:     * POST /workspace/{type}/restore/{version}
+./app/Http/Controllers/FeedbackController.php:318:     * GET /workspace/{type}/export
+./app/Http/Controllers/FeedbackController.php:589:        const res = await fetch("/workspace/'. $type .'/restore/'. $v->id .'", {
+./app/Http/Controllers/FeedbackController.php:609:        location.href = "/workspace/'. $type .'";
+./app/Http/Controllers/FeedbackController.php:703:        const res = await fetch("/workspace/'. $type .'/restore/'. $left->id .'", {
+./app/Http/Controllers/FeedbackController.php:723:        location.href = "/workspace/'. $type .'";
+./app/Http/Controllers/WorkspaceV3Controller.php:11:        return view('workspace_v3', [
+./app/Http/Controllers/GeneralMessageController.php:12:     * GET /workspace/{type}/general/{submission}
+./app/Http/Controllers/GeneralMessageController.php:56:     * POST /workspace/{type}/general/{submission}
+./app/Http/Controllers/GeneralMessageController.php:127:     * GET /workspace/{type}/general/{submission}/unread
+./app/Http/Controllers/ThreadController.php:18:class ThreadController extends Controller
+./app/Http/Controllers/ThreadController.php:40:     * Create a new feedback thread (POST /workspace/{type}/thread).
+./storage/framework/views/fd1e61baad24c37c3e6c1dae6e96f84d.php:356:           href="/workspace/<?php echo e($type ?? 'essay'); ?>/export?student=<?php echo e($exportStudentId); ?>"
+./storage/framework/views/fd1e61baad24c37c3e6c1dae6e96f84d.php:465:  const res = await fetch(`/workspace/${TYPE}/upload`, {
+./storage/framework/views/fd1e61baad24c37c3e6c1dae6e96f84d.php:879:          ? `/workspace/${TYPE}/save?submission_id=${encodeURIComponent(SUBMISSION)}`
+./storage/framework/views/fd1e61baad24c37c3e6c1dae6e96f84d.php:880:          : `/workspace/${TYPE}/save`;
+./storage/framework/views/fd1e61baad24c37c3e6c1dae6e96f84d.php:1030:          const res = await fetch(`/workspace/${TYPE}/thread/${id}`, {
+./storage/framework/views/fd1e61baad24c37c3e6c1dae6e96f84d.php:1068:        const url = `/workspace/${TYPE}/thread?submission_id=${encodeURIComponent(SUBMISSION)}`;
+./storage/framework/views/fd1e61baad24c37c3e6c1dae6e96f84d.php:1111:        const res = await fetch(`/workspace/${TYPE}/thread/${selectedThreadId}/reply`, {
+./storage/framework/views/fd1e61baad24c37c3e6c1dae6e96f84d.php:1129:            const again = await fetch(`/workspace/${TYPE}/thread/${selectedThreadId}`, {
+./storage/framework/views/fd1e61baad24c37c3e6c1dae6e96f84d.php:1137:          const again = await fetch(`/workspace/${TYPE}/thread/${selectedThreadId}`, {
+./storage/framework/views/fd1e61baad24c37c3e6c1dae6e96f84d.php:1209:        const res = await fetch(`/workspace/${TYPE}/history`, {
+./storage/framework/views/fd1e61baad24c37c3e6c1dae6e96f84d.php:1245:        location.href = `/workspace/${TYPE}/compare/${ver}`;
+./storage/framework/views/fd1e61baad24c37c3e6c1dae6e96f84d.php:1259:        const res = await fetch(`/workspace/${TYPE}/restore/${ver}`, {
+./storage/framework/views/fd1e61baad24c37c3e6c1dae6e96f84d.php:1271:          window.location.href = `/workspace/${TYPE}?restored=1`;
+./storage/framework/views/fd1e61baad24c37c3e6c1dae6e96f84d.php:1326:</html><?php /**PATH /home/australi/tok_app/resources/views/workspace_v3.blade.php ENDPATH**/ ?>
+./storage/framework/views/24cc78e4d590b756c0cd91fa030e39e8.php:475:      try{ const data=await fetchJSON(`/workspace/${encodeURIComponent(c.type)}/general/${encodeURIComponent(c.sid)}`); render(data.messages||[]); form.style.display=''; }
+./storage/framework/views/24cc78e4d590b756c0cd91fa030e39e8.php:480:      const res=await fetch(`/workspace/${encodeURIComponent(c.type)}/general/${encodeURIComponent(c.sid)}`,{
+./storage/framework/views/24cc78e4d590b756c0cd91fa030e39e8.php:507:        const res=await fetch(`/workspace/<?php echo e($type); ?>/general/<?php echo e($submission->id); ?>`,{
+./storage/framework/views/24cc78e4d590b756c0cd91fa030e39e8.php:631:        const url=`/workspace/<?php echo e($type); ?>/restore/${id}<?php echo e($studentIdParam ? ('?student='.$studentIdParam) : ''); ?>`;
+./storage/framework/views/24cc78e4d590b756c0cd91fa030e39e8.php:1055:</html><?php /**PATH /home/australi/tok_app/resources/views/workspace.blade.php ENDPATH**/ ?>
+./routes/web.php:19:use App\Http\Controllers\FeedbackController;
+./routes/web.php:20:use App\Http\Controllers\ThreadController;
+./routes/web.php:82:    | Workspace V2/V3 unified (FeedbackController is the single backend)
+./routes/web.php:85:    Route::get('/workspace/{type}', [FeedbackController::class, 'workspace'])
+./routes/web.php:89:    Route::post('/workspace/{type}/save', [FeedbackController::class, 'saveDraft'])
+./routes/web.php:93:    Route::get('/workspace/{type}/history', [FeedbackController::class, 'history'])
+./routes/web.php:97:    Route::get('/workspace/{type}/export', [FeedbackController::class, 'export'])
+./routes/web.php:101:    Route::post('/workspace/{type}/restore/{version}', [FeedbackController::class, 'restore'])
+./routes/web.php:106:    Route::get('/workspace/{type}/compare/{version}', [\App\Http\Controllers\FeedbackController::class, 'compare'])
+./routes/web.php:111:    Route::get('/workspace/{type}/version/{version}', [\App\Http\Controllers\FeedbackController::class, 'showVersion'])
+./routes/web.php:123:    Route::get('/workspace/{type}/general/{submission}', [GeneralMessageController::class, 'index'])
+./routes/web.php:127:    Route::get('/workspace/{type}/general/{submission}/unread', [GeneralMessageController::class, 'unread'])
+./routes/web.php:131:    Route::post('/workspace/{type}/general/{submission}', [GeneralMessageController::class, 'store'])
+./routes/web.php:142:    Route::get('/workspace/{type}/thread/{thread}', [ThreadController::class, 'show'])
+./routes/web.php:147:    Route::get('/workspace/{type}/thread/{thread}/poll', [ThreadController::class, 'poll'])
+./routes/web.php:153:    Route::post('/workspace/{type}/thread/{thread}/reply', [ThreadController::class, 'reply'])
+./routes/web.php:158:    Route::post('/workspace/{type}/thread/{thread}/typing', [ThreadController::class, 'typing'])
+./routes/web.php:164:    Route::get('/workspace/{type}/thread/{thread}/typing', [ThreadController::class, 'typingStatus'])
+./routes/web.php:217:    Route::post('/workspace/{type}/thread', [ThreadController::class, 'create'])
+./routes/web.php:226:    Route::post('/workspace/{type}/thread/{thread}/resolve', [ThreadController::class, 'resolve'])

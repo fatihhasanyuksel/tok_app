@@ -1,0 +1,2 @@
+app/Http/Controllers/FeedbackController.php:110:    ? view('workspace', $data)       // legacy (if needed)
+app/Http/Controllers/ThreadController.php:247:        return view('workspace', [
