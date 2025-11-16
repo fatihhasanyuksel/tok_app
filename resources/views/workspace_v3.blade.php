@@ -1593,6 +1593,15 @@ async function openThreadFromSelection(options = {}) {
       }
     }
 
+// Staff-only Snapshot button (students no longer have Save Draft)
+const snapshotBtn = document.getElementById('wk3-btn-save');
+if (snapshotBtn && (ROLE === 'teacher' || ROLE === 'admin')) {
+  snapshotBtn.addEventListener('click', () => {
+    // For staff, Snapshot = create a new version checkpoint
+    saveDraft(true);
+  });
+}
+
 // --- Snapshot glow helper ---
 function markSnapshotGlow(on = true) {
   const btn = document.getElementById('wk3-btn-save');
