@@ -1593,13 +1593,6 @@ async function openThreadFromSelection(options = {}) {
       }
     }
 
-    // -------- Wire buttons (single IDs, role-aware) --------
-    const $saveBtn = document.getElementById('wk3-btn-save');
-    $saveBtn?.addEventListener('click', () => {
-      const isStaff = (ROLE === 'teacher' || ROLE === 'admin');
-      saveDraft(isStaff); // staff = snapshot; student = draft
-    });
-
 // --- Snapshot glow helper ---
 function markSnapshotGlow(on = true) {
   const btn = document.getElementById('wk3-btn-save');
