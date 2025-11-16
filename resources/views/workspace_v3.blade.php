@@ -663,7 +663,6 @@ a.btn:focus-visible {
 
     @else
       <!-- Student actions (always their own submission page) -->
-      <button id="wk3-btn-save" class="btn" type="button">Save Draft</button>
       <button id="wk3-btn-history" class="btn" type="button">History</button>
       <button id="wk3-btn-request" class="btn" type="button">Request Feedback</button>
       {{-- Open Thread is staff-only; students use Request Feedback, which opens a thread --}}
