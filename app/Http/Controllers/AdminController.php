@@ -5,17 +5,40 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Teacher;
 use App\Models\Student;
+use App\Models\User; // 👈 ADD THIS
 
 class AdminController extends Controller
 {
     /**
      * Admin landing dashboard (Phase 5)
      */
-    public function dashboard()
+    public function dashboard(Request $request)
     {
-        // Minimal landing view for now
-        // Later we can add stats: total students, active teachers, etc.
-        return view('admin.dashboard');
+        // Load students in a DB-safe way
+        $students = Student::orderBy('id')->get();
+
+        $selectedStudent = null;
+        $selectedUserId  = null; // 👈 this will become the ?student= value
+
+        if ($request->filled('student_id')) {
+            $selectedStudent = Student::find($request->student_id);
+
+            if ($selectedStudent) {
+                // Prefer an explicit mapping if it exists
+                if (!empty($selectedStudent->user_id)) {
+                    $selectedUserId = (int) $selectedStudent->user_id;
+                } else {
+                    // Fallback: resolve the corresponding user via email
+                    $selectedUserId = User::where('email', $selectedStudent->email)->value('id');
+                }
+            }
+        }
+
+        return view('admin.dashboard', [
+            'students'        => $students,
+            'selectedStudent' => $selectedStudent,
+            'selectedUserId'  => $selectedUserId, // 👈 pass to blade
+        ]);
     }
 
     /**

@@ -114,111 +114,156 @@ return view($useV2 ? 'workspace' : 'workspace_v3', $data);
 
     /**
      * POST /workspace/{type}/save
+     * 	“Students: autosave only”
+     * “Staff: manual save / snapshot”
      * Autosave (no snapshot) + revision handshake.
      * - Client sends { autosave: true, submission_id, body, body_html, rev }
      * - Server compares rev vs submissions.working_rev
      *   - If mismatch: 409 + { expected: current_rev, submission_id, version_id }
      *   - If match: update version, ++working_rev, return { ok, rev, submission_id, version_id, snapshot:false }
      */
-    public function saveDraft(Request $request, string $type)
-    {
-        abort_unless(in_array($type, ['exhibition', 'essay'], true), 404);
+public function saveDraft(Request $request, string $type)
+{
+    abort_unless(in_array($type, ['exhibition', 'essay'], true), 404);
 
-        $user = $request->user();
-        abort_unless($user, 401);
+    $user = $request->user();
+    abort_unless($user, 401);
 
-        // Validate incoming payload
-        $data = $request->validate([
-            'autosave'    => ['boolean'],
-            'submission_id' => ['nullable', 'integer', 'min:1'],
-            'body'        => ['nullable', 'string', 'max:100000'], // plain text, optional
-            'body_html'   => ['required', 'string'],               // TipTap HTML
-            'rev'         => ['nullable', 'integer', 'min:0'],
-        ]);
-        
-        $isSnapshot = $request->boolean('snapshot');
+    $role      = strtolower((string) $user->role);
+    $isStudent = ($role === 'student');
+    $isStaff   = in_array($role, ['teacher', 'admin'], true);
 
-        // Resolve the student and submission
-        // Teachers may pass submission_id (authoritative). Students save their own.
-        if (strtolower((string) $user->role) === 'student') {
-            $studentId = (int) $user->id;
-            $submission = \App\Models\Submission::firstOrCreate(
-                ['student_id' => $studentId, 'type' => $type],
-                ['status' => 'draft', 'working_rev' => 1]
-            );
-        } else {
-            $sid = (int) ($data['submission_id'] ?? 0);
-            abort_if($sid <= 0, 404, 'Missing submission id.');
-            $submission = \App\Models\Submission::with('latestVersion')->findOrFail($sid);
-        }
-
-// Ensure a version exists
-$version = $submission->latestVersion()->first();
-if (!$version) {
-    $version = \App\Models\Version::create([
-        'submission_id' => $submission->id,
-        'body_html'     => '<p><em>Start writing…</em></p>',
-        'files_json'    => [],
-        'created_by'    => $user->id ?? null,
+    // Validate incoming payload
+    $data = $request->validate([
+        'autosave'      => ['boolean'],
+        'submission_id' => ['nullable', 'integer', 'min:1'],
+        'body'          => ['nullable', 'string', 'max:100000'], // plain text, optional
+        'body_html'     => ['required', 'string'],               // TipTap HTML
+        'rev'           => ['nullable', 'integer', 'min:0'],
+        'snapshot'      => ['sometimes', 'boolean'],
     ]);
-}
 
-        // --- Revision handshake ---
-        $clientRev = (int) ($data['rev'] ?? 0);
-        $serverRev = (int) ($submission->working_rev ?? 1);
+    $isSnapshot = $request->boolean('snapshot');
 
-        // If snapshot, persist a read-only version and return (do NOT bump working_rev)
-        if ($isSnapshot) {
-            $plain = strip_tags((string)($data['body_html'] ?? ''));
-            $summary = mb_substr(trim(preg_replace('/\s+/', ' ', $plain)), 0, 120);
+    // Students never manually save — only autosave allowed
+    if ($isStudent && !$request->boolean('autosave')) {
+        return response()->json([
+            'ok'    => false,
+            'error' => 'manual_save_disabled_for_students',
+        ], 403);
+    }
 
-            $version = \App\Models\Version::create([
-                'submission_id' => $submission->id,
-                'body'          => (string)($data['body'] ?? ''),
-                'body_html'     => (string)($data['body_html'] ?? ''),
-                'summary'       => $summary,
-                'created_by'    => $user->id ?? null,
-            ]);
+    // (Optional hard guard: students cannot trigger snapshot)
+    if ($isStudent && $isSnapshot) {
+        return response()->json([
+            'ok'    => false,
+            'error' => 'snapshot_not_allowed_for_students',
+        ], 403);
+    }
 
-            return response()->json([
-                'ok'            => true,
-                'snapshot'      => true,
-                'submission_id' => $submission->id,
-                'version_id'    => $version->id,
-                'rev'           => $serverRev, // unchanged
-            ]);
+    // Resolve the student + submission
+    if ($isStudent) {
+        $studentId  = (int) $user->id;
+        $submission = \App\Models\Submission::firstOrCreate(
+            ['student_id' => $studentId, 'type' => $type],
+            ['status' => 'draft', 'working_rev' => 1]
+        );
+    } else {
+        $sid = (int) ($data['submission_id'] ?? 0);
+        abort_if($sid <= 0, 404, 'Missing submission id.');
+        $submission = \App\Models\Submission::with('latestVersion')->findOrFail($sid);
+
+        // Ensure working_rev is initialised
+        if ((int) ($submission->working_rev ?? 0) <= 0) {
+            $submission->working_rev = 1;
+            $submission->save();
         }
+    }
 
-        // If client is behind, ask them to sync (no write)
-        if ($clientRev !== $serverRev) {
-            return response()->json([
-                'ok'            => false,
-                'error'         => 'conflict',
-                'expected'      => $serverRev,
-                'submission_id' => $submission->id,
-                'version_id'    => $version->id,
-            ], 409);
-        }
+    // Ensure a working version exists
+    $version = $submission->latestVersion()->first();
+    if (!$version) {
+        $version = \App\Models\Version::create([
+            'submission_id' => $submission->id,
+            'body_html'     => '<p><em>Start writing…</em></p>',
+            'files_json'    => [],
+            'created_by'    => $user->id ?? null,
+        ]);
+    }
 
-// Update current working draft (no new Version snapshot here)
-$version->body_html = (string) $data['body_html'];
-$version->save();
+    // --- Revision handshake (now shared by autosave + snapshot) ---
+    $clientRev = (int) ($data['rev'] ?? 0);
+    $serverRev = (int) ($submission->working_rev ?? 1);
 
-// Mirror into submission so hydration uses exact rich HTML (images persist)
-$submission->working_html = (string) $data['body_html'];
-$submission->working_body = $this->htmlToPlain((string) $data['body_html']);
+    // If client is behind, ask them to sync (no write)
+    if ($clientRev !== $serverRev) {
+        return response()->json([
+            'ok'            => false,
+            'error'         => 'conflict',
+            'expected'      => $serverRev,
+            'submission_id' => $submission->id,
+            'version_id'    => $version->id,
+        ], 409);
+    }
 
-// Bump working_rev after successful write
-$submission->working_rev = $serverRev + 1;
-$submission->save();
+    // Normalise HTML → plain once
+    $bodyHtml = (string) ($data['body_html'] ?? '');
+    $bodyText = (string) ($data['body'] ?? '');
+    if ($bodyText === '') {
+        // Use our helper so export + working_body are consistent
+        $bodyText = $this->htmlToPlain($bodyHtml);
+    }
 
-return response()->json([
-    'ok'            => true,
-    'rev'           => (int) $submission->working_rev,
-    'submission_id' => (int) $submission->id,
-    'version_id'    => (int) $version->id,
-    'snapshot'      => false,
-]);
+    // --- Snapshot path (staff, manual) ---
+    if ($isSnapshot && $isStaff) {
+        // Create a read-only version snapshot
+        $summary = mb_substr(
+            trim(preg_replace('/\s+/', ' ', strip_tags($bodyHtml))),
+            0,
+            120
+        );
+
+        $snapshotVersion = \App\Models\Version::create([
+            'submission_id' => $submission->id,
+            'body'          => $bodyText,
+            'body_html'     => $bodyHtml,
+            'summary'       => $summary,
+            'created_by'    => $user->id ?? null,
+        ]);
+
+        // Mirror into working_* so editor always rehydrates with the latest snapshot
+        $submission->working_html = $bodyHtml;
+        $submission->working_body = $bodyText;
+        $submission->working_rev  = $serverRev + 1;
+        $submission->save();
+
+        return response()->json([
+            'ok'            => true,
+            'snapshot'      => true,
+            'submission_id' => $submission->id,
+            'version_id'    => $snapshotVersion->id,
+            'rev'           => (int) $submission->working_rev,
+        ]);
+    }
+
+    // --- Autosave path (students only) ---
+    // Update current working draft (no new Version snapshot here)
+    $version->body_html = $bodyHtml;
+    $version->save();
+
+    // Mirror into submission so hydration uses exact rich HTML (images persist)
+    $submission->working_html = $bodyHtml;
+    $submission->working_body = $bodyText;
+    $submission->working_rev  = $serverRev + 1;
+    $submission->save();
+
+    return response()->json([
+        'ok'            => true,
+        'rev'           => (int) $submission->working_rev,
+        'submission_id' => (int) $submission->id,
+        'version_id'    => (int) $version->id,
+        'snapshot'      => false,
+    ]);
 }
 
     /**

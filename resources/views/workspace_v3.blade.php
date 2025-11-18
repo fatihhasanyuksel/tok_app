@@ -184,8 +184,50 @@ a.btn:focus-visible {
 /* Pills + subtle elements */
 .pill { background: rgba(148,163,184,.12); border-color: var(--b); color: var(--fg); }
 .pill-bad { color: #f87171; }
-.pill-student-request { background: rgba(34,197,94,.12); border-color: rgba(34,197,94,.35); color:#166534; }
-.thread-student-request { border-left:3px solid rgba(34,197,94,.7); }
+
+/* Student request label */
+.pill-student-request {
+  background: rgba(34,197,94,.12);
+  border-color: rgba(34,197,94,.35);
+  color:#166534;
+}
+
+/* Base thread card */
+.thread-card {
+  border-left: 3px solid #e5e7eb;
+}
+
+/* Student feedback request = soft orange card */
+.thread-student-request {
+  border-left-color: #f97316;                 /* orange */
+  background: rgba(249, 115, 22, 0.03);       /* very light orange */
+}
+
+/* Teacher-created / neutral = soft grey */
+.thread-neutral {
+  border-left-color: #cbd5f1;
+  background: rgba(148,163,184,0.04);
+}
+
+/* Resolved = green */
+.thread-resolved {
+  border-left-color: #22c55e;
+  background: rgba(34,197,94,0.04);
+}
+
+/* Resolved status pill */
+.pill-resolved {
+  background: rgba(34,197,94,0.15);   /* light green */
+  border-color: rgba(34,197,94,0.5);
+  color: #166534;                     /* dark green text */
+  font-weight: 600;
+}
+
+/* Overdue (unresolved for X days) = red */
+.thread-overdue {
+  border-left-color: #ef4444;
+  box-shadow: -3px 0 0 #ef4444;
+}
 
 /* Toasts */
 #wk3-toast { background: rgba(250, 204, 21, .1); border:1px solid #facc15; }
@@ -195,7 +237,7 @@ a.btn:focus-visible {
     .topbar > .utils { display:flex; align-items:center; gap:8px; }
     .bottombar { border-top:1px solid var(--b); border-bottom:none; }
 
-    .main { display:grid; grid-template-columns: 1fr 360px; min-height: calc(100dvh - 96px); }
+    .main { display:grid; grid-template-columns: 1fr 420px; min-height: calc(100dvh - 96px); }
     .left { border-right:1px solid var(--b); background:var(--bg); min-width:0; }
     .right { background:var(--pane); overflow:auto; }
 
@@ -273,20 +315,29 @@ a.btn:focus-visible {
       padding: 10px 16px; z-index: 200;
     }
     .td-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+    .td-head-right {
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
     
     /* Clean thread header typography */
-.td-head strong {
+/* Clean thread header typography (detail + list cards) */
+.td-head strong,
+.thread-list-head strong {
   font-size: 15px;
   font-weight: 600;
 }
 
-.td-head .pill {
+.td-head .pill,
+.thread-list-head .pill {
   font-size: 13px;
   font-weight: 500;
 }
 
-.td-head .td-meta {
-  font-size: 13px;       /* match label size */
+.td-head .td-meta,
+.thread-list-head .td-meta {
+  font-size: 13px;
   color: var(--muted);
 }
 
@@ -404,6 +455,7 @@ a.btn:focus-visible {
 .wk3-status small {
   font-size: 11px;
 }
+
   </style>
 </head>
 <body>
@@ -553,61 +605,115 @@ a.btn:focus-visible {
   </div>
 </div>
 
-      @if (!isset($threads) || $threads->isEmpty())
-        <div style="padding:12px 8px;">
-          <div class="td-empty">No threads yet.</div>
-        </div>
-      @else
-        <div id="wk3-thread-list" style="padding:12px;">
-@foreach ($threads as $t)
-            @php
-              $ownerId      = optional(optional($t->version)->submission)->student_id;
-              $lastAuthorId = optional($t->latestMessage)->author_id;
-              $label = $t->is_resolved
-                ? 'Resolved'
-                : (($lastAuthorId && $ownerId && (int)$lastAuthorId === (int)$ownerId) ? 'Awaiting Teacher' : 'Awaiting Student');
+@if (!isset($threads) || $threads->isEmpty())
+  <div style="padding:12px 8px;">
+    <div class="td-empty">No threads yet.</div>
+  </div>
+@else
+  <div id="wk3-thread-list" style="padding:12px;">
+    @foreach ($threads as $t)
+      @php
+        // Basic ownership data
+        $ownerId      = optional(optional($t->version)->submission)->student_id;
+        $lastAuthorId = optional($t->latestMessage)->author_id;
 
-              $latestBody = trim((string) optional($t->latestMessage)->body);
-              $latestBody = $latestBody === '' ? '—' : mb_strimwidth($latestBody, 0, 140, '…');
+        // Label logic
+        if ($t->is_resolved) {
+            $label = 'Resolved';
+        } elseif ($lastAuthorId && $ownerId && (int)$lastAuthorId === (int)$ownerId) {
+            $label = 'Awaiting Teacher';
+        } else {
+            $label = 'Awaiting Student';
+        }
 
-              $pmFrom = is_numeric($t->pm_from ?? null) ? (int)$t->pm_from : null;
-              $pmTo   = is_numeric($t->pm_to   ?? null) ? (int)$t->pm_to   : null;
+        // Latest message preview
+        $latestBody = trim((string) optional($t->latestMessage)->body);
+        $latestBody = $latestBody === '' ? '—' : mb_strimwidth($latestBody, 0, 140, '…');
 
-              $firstMessage   = $t->messages->first();
-              $firstAuthorId  = optional($firstMessage)->author_id;
-              $isStudentRequest = $ownerId && $firstAuthorId && (int)$firstAuthorId === (int)$ownerId;
-            @endphp
+        // Highlight selection range
+        $pmFrom = is_numeric($t->pm_from ?? null) ? (int)$t->pm_from : null;
+        $pmTo   = is_numeric($t->pm_to   ?? null) ? (int)$t->pm_to   : null;
 
-            <div class="thread-card {{ $isStudentRequest ? 'thread-student-request' : '' }}"
-                 data-thread-id="{{ $t->id }}"
-                 @if($pmFrom !== null && $pmTo !== null)
-                   data-from="{{ $pmFrom }}" data-to="{{ $pmTo }}"
-                 @endif>
-              <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-                <div>
-                  <strong>#{{ $t->id }}</strong>
-                  <span style="color:#777;"> - {{ optional($t->created_at)->format('Y-m-d H:i') }}</span>
-                </div>
-                <div style="display:flex; gap:6px; align-items:center;">
-                  @if($isStudentRequest)
-                    <span class="pill pill-student-request">Student request</span>
-                  @endif
-                  <span class="pill">{{ $label }}</span>
-                </div>
-              </div>
+        // Student-request status
+        $firstMessage     = $t->messages->first();
+        $firstAuthorId    = optional($firstMessage)->author_id;
+        $isStudentRequest = $ownerId && $firstAuthorId && ((int)$firstAuthorId === (int)$ownerId);
 
-              @if (!empty($t->selection_text))
-                <div class="sel"><em>&ldquo;{{ e($t->selection_text) }}&rdquo;</em></div>
-              @endif
+        // Role-aware overdue logic (based on *last message* timestamps)
+        $roleVal  = strtolower((string) ($role ?? 'guest'));
+        $isStaff  = in_array($roleVal, ['teacher','admin'], true);
+        $overdue  = false;
+        $lastAt   = optional($t->latestMessage)->created_at;
 
-              <div style="margin-top:6px; color:#444;">{{ $latestBody }}</div>
-            </div>
-            </div>
-          @endforeach
-        </div>
-      @endif
-    </aside>
-  </main>
+        if (!$t->is_resolved && $lastAt) {
+            if ($isStaff && $label === 'Awaiting Teacher') {
+                // Teacher view:
+                // Red only if the student's last message is older than 48 hours
+                $overdue = $lastAt->lt(now()->subHours(48));
+            } elseif (!$isStaff && $label === 'Awaiting Student') {
+                // Student view:
+                // Red only if the teacher's last message is older than 2 days
+                $overdue = $lastAt->lt(now()->subDays(2));
+            }
+        }
+
+        // Build card classes
+        $cardClasses = ['thread-card'];
+        if ($isStudentRequest && !$t->is_resolved) {
+            $cardClasses[] = 'thread-student-request'; // orange
+        }
+        if ($t->is_resolved) {
+            $cardClasses[] = 'thread-resolved';        // green left border
+        }
+        if ($overdue) {
+            $cardClasses[] = 'thread-overdue';         // red left border
+        }
+
+        // Pill classes
+        $statusPillClass = 'pill';
+        if ($t->is_resolved) {
+            $statusPillClass .= ' pill-resolved';
+        } elseif ($overdue) {
+            $statusPillClass .= ' pill-overdue';
+        }
+      @endphp
+
+      <div class="{{ implode(' ', $cardClasses) }}"
+           data-thread-id="{{ $t->id }}"
+           @if($pmFrom !== null && $pmTo !== null)
+             data-from="{{ $pmFrom }}" data-to="{{ $pmTo }}"
+           @endif>
+
+<div class="thread-list-head"
+     style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+  <div>
+    <strong>#{{ $t->id }}</strong>
+    <span class="td-meta" style="color:#777;">
+      - {{ optional($t->created_at)->format('Y-m-d H:i') }}
+    </span>
+  </div>
+
+  <div style="display:flex; gap:6px; align-items:center;">
+    @if($isStudentRequest)
+      <span class="pill pill-student-request">Student request</span>
+    @endif
+    <span class="{{ $statusPillClass }}">{{ $label }}</span>
+  </div>
+</div>
+
+        @if (!empty($t->selection_text))
+          <div class="sel"><em>&ldquo;{{ e($t->selection_text) }}&rdquo;</em></div>
+        @endif
+
+        <div style="margin-top:6px; color:#444;">{{ $latestBody }}</div>
+      </div>
+
+    @endforeach
+  </div>
+@endif
+
+</aside>
+</main>
 
 <footer class="bottombar" role="contentinfo">
   <div class="bb-left">
@@ -1278,21 +1384,37 @@ const url = SUBMISSION
           body: JSON.stringify(payload),
         });
 
-        // --- Handle 409 Conflict gracefully ---
+        // --- Handle 409 Conflict: hard stop + visible warning ---
         if (res.status === 409) {
           let expected = null;
           try {
             const j = await res.json();
             expected = (typeof j?.expected === 'number') ? j.expected : null;
           } catch {}
+
+          // Adjust local rev to server's expectation (for logging / future saves)
           if (typeof expected === 'number') rev = expected;
 
-          clearTimeout(autosaveTimer);
-          autosaveTimer = setTimeout(() => saveDraft(false), AUTOSAVE_DELAY);
+          // Stop any pending autosave retries
+          if (autosaveTimer) clearTimeout(autosaveTimer);
 
-          setStatus('Conflict');
+          // 🔴 BLOCK FURTHER EDITS UNTIL RELOAD
+          try {
+            editor?.setEditable(false);
+          } catch (e) {
+            console.warn('[wk3] failed to lock editor after 409', e);
+          }
+
+          console.warn('[wk3] 409 conflict detected, rev now:', rev);
+
+          setStatus('Conflict – newer version exists');
           setSync('Out of date');
-          showToast('This page is out of date. Reload to get the latest version.');
+
+          // Make the warning impossible to miss
+          showToast('Your teacher or another session has a newer version. Reload to sync.');
+
+          // Optional but very visible fallback:
+          alert('This page is out of date.\n\nAnother session has saved a newer version.\nPlease click "Reload" in the yellow box to sync before editing.');
           return;
         }
 
@@ -1369,6 +1491,14 @@ function renderDetailEmpty() {
   $detail.innerHTML = `<div class="td-empty">Select a thread to view messages here.</div>`;
   if ($replyBox) $replyBox.style.display = 'none';
   selectedThreadId = null;
+
+  // restore all cards in the list
+  if ($list) {
+    $list.querySelectorAll('.thread-card').forEach(el => {
+      el.classList.remove('active');
+      el.style.display = '';
+    });
+  }
 }
 
 function escapeHtml(s){
@@ -1382,13 +1512,31 @@ function escapeHtml(s){
 }
 
 function renderDetail(thread) {
+  const isResolved = !!thread.is_resolved;
+  const label      = thread.label || (isResolved ? 'Resolved' : '');
+
+  // Only staff see the Resolve button on unresolved threads
+  let resolveBtn = '';
+  if (IS_STAFF && !isResolved) {
+    resolveBtn = `
+      <button type="button"
+              class="btn td-resolve-btn"
+              data-thread-id="${thread.id}">
+        Resolve
+      </button>
+    `;
+  }
+
   const head = `
     <div class="td-head">
       <div>
         <strong>Thread #${thread.id}</strong>
-        ${thread.label ? `<span class="pill" style="margin-left:8px;">${thread.label}</span>` : ``}
+        ${label ? `<span class="pill" style="margin-left:8px;">${label}</span>` : ``}
       </div>
-      <span class="td-meta">${thread.created_at || ''}</span>
+      <div class="td-head-right">
+        <span class="td-meta">${thread.created_at || ''}</span>
+        ${resolveBtn}
+      </div>
     </div>
   `;
 
@@ -1400,7 +1548,7 @@ function renderDetail(thread) {
   const meName = (window.AUTH_NAME || '').trim().toLowerCase();
 
   const msgs = (thread.messages || []).map(m => {
-    const rawName = m.author?.name || m.from || 'User';
+    const rawName  = m.author?.name || m.from || 'User';
     const normName = rawName.trim().toLowerCase();
 
     const isMe  = meName && normName === meName;
@@ -1428,13 +1576,78 @@ function renderDetail(thread) {
   if ($replyBox) $replyBox.style.display = 'block';
   if ($replyInput) $replyInput.focus();
 }
+// --- Resolve button (staff only, scoped to detail pane) ---
+if ($detail) {
+  $detail.addEventListener('click', async (ev) => {
+    const btn = ev.target.closest('.td-resolve-btn');
+    if (!btn) return;
 
+    const id = parseInt(btn.dataset.threadId || '0', 10);
+    if (!id) return;
+
+    btn.disabled = true;
+    const originalText = btn.textContent;
+    btn.textContent = 'Resolving…';
+
+    try {
+      const res = await fetch(`/workspace/${TYPE}/thread/${id}/resolve`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-CSRF-TOKEN': CSRF,
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify({}),
+      });
+
+      if (!res.ok) {
+        console.error('[wk3] resolve failed', res.status, await res.text().catch(() => ''));
+        alert('Could not mark this thread as resolved (server error).');
+        btn.disabled = false;
+        btn.textContent = originalText;
+        return;
+      }
+
+      let data = null;
+      try { data = await res.json(); } catch {}
+
+      const thread = data && data.thread
+        ? data.thread
+        : { id, is_resolved: true, label: 'Resolved' };
+
+      // Re-render detail with updated state
+      renderDetail(thread);
+
+      // Update card in the list (border + pill)
+      const card = $list?.querySelector(`.thread-card[data-thread-id="${id}"]`);
+      if (card) {
+        card.classList.remove('thread-overdue', 'thread-student-request');
+        card.classList.add('thread-resolved');
+
+        // Status pill = any pill that is NOT the 'Student request' one
+        const statusPill = card.querySelector('.pill:not(.pill-student-request)');
+        if (statusPill) {
+          statusPill.textContent = 'Resolved';
+          statusPill.classList.add('pill-resolved');
+          statusPill.classList.remove('pill-overdue');
+        }
+      }
+    } catch (e) {
+      console.error('[wk3] resolve error', e);
+      alert('Network error while resolving this thread.');
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  });
+}
 if ($list) {
   $list.addEventListener('click', async (ev) => {
     const card = ev.target.closest('.thread-card');
     if (!card) return;
 
-    // Reset any previously active / hidden cards
+    // Reset previous state
     $list.querySelectorAll('.thread-card').forEach(el => {
       el.classList.remove('active');
       el.style.display = '';
@@ -1454,21 +1667,28 @@ if ($list) {
       try {
         editor.chain().setTextSelection({ from, to }).run();
         editor.view.scrollIntoView();
-      } catch (e) { console.warn('[wk3] setTextSelection failed', e); }
+      } catch (e) {
+        console.warn('[wk3] setTextSelection failed', e);
+      }
     }
 
     try {
       renderDetailLoading(id);
       const res = await fetch(`/workspace/${TYPE}/thread/${id}`, {
-        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
         credentials: 'same-origin',
       });
+
       if (!res.ok) {
         $detail.innerHTML = `<div class="td-empty">Couldn't load thread (#${id}).</div>`;
         if ($replyBox) $replyBox.style.display = 'none';
-        console.error('[wk3] thread load failed', res.status, await res.text().catch(()=>'')); 
+        console.error('[wk3] thread load failed', res.status, await res.text().catch(() => ''));
         return;
       }
+
       const data = await res.json().catch(() => null);
       renderDetail(data || { id });
     } catch (e) {
@@ -1541,7 +1761,10 @@ async function openThreadFromSelection(options = {}) {
     async function sendReply() {
       if (!selectedThreadId) return;
       const body = ($replyInput?.value || '').trim();
-      if (!body) { setReplyStat('Type a message first.'); return; }
+      if (!body) {
+        setReplyStat('Type a message first.');
+        return;
+      }
 
       setReplyStat('Sending…');
 
@@ -1565,21 +1788,27 @@ async function openThreadFromSelection(options = {}) {
             renderDetail(data.thread);
           } else {
             const again = await fetch(`/workspace/${TYPE}/thread/${selectedThreadId}`, {
-              headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+              headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+              },
               credentials: 'same-origin',
             });
-            const j = await again.json().catch(()=>null);
+            const j = await again.json().catch(() => null);
             if (j) renderDetail(j);
           }
         } else if (res.ok) {
           const again = await fetch(`/workspace/${TYPE}/thread/${selectedThreadId}`, {
-            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            headers: {
+              'Accept': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest'
+            },
             credentials: 'same-origin',
           });
-          const j = await again.json().catch(()=>null);
+          const j = await again.json().catch(() => null);
           if (j) renderDetail(j);
         } else {
-          console.error('[wk3] reply failed', res.status, await res.text().catch(()=>'')); 
+          console.error('[wk3] reply failed', res.status, await res.text().catch(() => ''));
           setReplyStat(`Error (${res.status})`);
           return;
         }
@@ -1592,6 +1821,32 @@ async function openThreadFromSelection(options = {}) {
         setReplyStat('Network error');
       }
     }
+
+    // WK3-REPLY-WIRING START
+    if ($replyBtn) {
+      $replyBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        sendReply();
+      });
+    }
+
+    // Cmd/Ctrl+Enter in the textarea also sends
+    if ($replyInput) {
+      $replyInput.addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+          e.preventDefault();
+          sendReply();
+        }
+      });
+    }
+
+    // Close button hides reply box and clears selection
+    if ($replyClose) {
+      $replyClose.addEventListener('click', () => {
+        renderDetailEmpty();
+      });
+    }
+    // WK3-REPLY-WIRING END
 
 // Staff-only Snapshot button (students no longer have Save Draft)
 const snapshotBtn = document.getElementById('wk3-btn-save');

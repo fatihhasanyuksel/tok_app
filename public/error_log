@@ -603,3 +603,7 @@ Stack trace:
 [08-Nov-2025 11:03:31 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94
 [08-Nov-2025 11:05:03 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94
 [08-Nov-2025 11:05:09 Asia/Dubai] PHP Fatal error:  Can't use method return value in write context in /home/australi/tok_app/routes/web.php on line 94
+[18-Nov-2025 12:04:13 Asia/Dubai] PHP Fatal error:  Cannot redeclare App\Http\Controllers\AdminController::dashboard() in /home/australi/tok_app/app/Http/Controllers/AdminController.php on line 27
+[18-Nov-2025 12:11:47 Asia/Dubai] PHP Fatal error:  Cannot redeclare App\Http\Controllers\AdminController::dashboard() in /home/australi/tok_app/app/Http/Controllers/AdminController.php on line 27
+[18-Nov-2025 18:07:06 Asia/Dubai] PHP Fatal error:  Namespace declaration statement has to be the very first statement or after any declare call in the script in /home/australi/tok_app/app/Http/Controllers/FeedbackController.php on line 5
+[18-Nov-2025 18:07:10 Asia/Dubai] PHP Fatal error:  Namespace declaration statement has to be the very first statement or after any declare call in the script in /home/australi/tok_app/app/Http/Controllers/FeedbackController.php on line 5
