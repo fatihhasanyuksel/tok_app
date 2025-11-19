@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -30,6 +31,12 @@ class Student extends Model
     {
         // uses teacher_id by convention
         return $this->belongsTo(\App\Models\Teacher::class);
+    }
+
+    /** 🔗 Each student is linked to one User account (login). */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 
     /** Convenience: "First Last" */

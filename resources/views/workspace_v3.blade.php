@@ -498,8 +498,8 @@ a.btn:focus-visible {
     <div class="utils">
       <button class="btn" id="wk3-btn-messages" type="button" aria-expanded="false">
     Messages
-    <span id="wk3-msg-badge" class="msg-badge"></span>
-  </button>
+    <span id="wk3-msg-badge" class="msg-badge" style="display:none;"></span>
+</button>
   
   <!-- Messages panel (legacy) -->
 <div id="msg-panel" style="display:none; position:absolute; right:16px; top:56px; width:360px; max-height:60vh; overflow:auto; background:#fff; border:1px solid #e5e5e5; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.12); z-index:9999; padding:12px;">
@@ -2096,6 +2096,14 @@ function setSeenCount(n) {
 
 function updateMsgBadge(unread) {
   if (!msgBadge) return;
+
+  // Teachers/Admins: never show an unread bubble
+  if (IS_STAFF) {
+    msgBadge.textContent = '';
+    msgBadge.style.display = 'none';
+    return;
+  }
+
   const n = Number.isFinite(unread) ? unread : 0;
 
   if (n > 0) {

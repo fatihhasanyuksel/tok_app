@@ -1,131 +1,325 @@
 @extends('layout')
 
 @section('body')
-  <h2>Edit Student</h2>
+  <style>
+    /* Same scoped styles as create page */
+    .admin-student-page {
+      max-width: 960px;
+      margin: 32px auto;
+      padding: 24px 28px 28px;
+      background: #ffffff;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    }
+    .admin-student-page h2 {
+      margin-top: 0;
+      margin-bottom: 16px;
+      font-size: 22px;
+      font-weight: 600;
+      color: #111827;
+    }
+    .admin-student-subtitle {
+      margin: 0 0 20px;
+      font-size: 14px;
+      color: #6b7280;
+    }
 
-  {{-- ✅ Step 2: Scoped flash messages --}}
-  @if(session('ok_edit'))
-    <div class="flash">{{ session('ok_edit') }}</div>
-  @endif
-  @if(session('generated_password_students'))
-    <div class="flash">
-      Generated password:
-      <code>{{ session('generated_password_students') }}</code>
-      — copy it now; it will not be shown again.
-    </div>
-  @endif
+    .admin-student-page .flash {
+      margin-bottom: 16px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: #ecfeff;
+      border: 1px solid #7dd3fc;
+      font-size: 14px;
+      color: #0f172a;
+    }
+    .admin-student-page .flash code {
+      background: #0b1120;
+      color: #e5e7eb;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .admin-student-page .flash--error {
+      background: #fef2f2;
+      border-color: #fecaca;
+    }
 
-  {{-- Validation errors --}}
-  @if ($errors->any())
-    <div class="flash" style="background:#fee; border:1px solid #f99;">
-      <ul style="margin:0; padding-left:18px;">
-        @foreach ($errors->all() as $e)
-          <li>{{ $e }}</li>
-        @endforeach
-      </ul>
-    </div>
-  @endif
+    .admin-student-form {
+      display: grid;
+      gap: 12px;
+    }
+    .admin-student-form label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 2px;
+      display: block;
+    }
+    .admin-student-form input,
+    .admin-student-form select {
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    .admin-student-form input:focus,
+    .admin-student-form select:focus {
+      outline: 2px solid #0b6bd6;
+      outline-offset: 1px;
+      border-color: #0b6bd6;
+    }
 
-  {{-- Main update form --}}
-  <form method="POST" action="{{ route('admin.students.update', $student) }}" style="max-width:900px;">
-    @csrf
-    @method('PUT')
+    .admin-student-inline-row {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr);
+      gap: 16px;
+      align-items: end;
+    }
 
-    <label>Full name</label>
-    <input
-      type="text"
-      name="name"
-      value="{{ old('name', trim($student->first_name.' '.$student->last_name)) }}"
-      required
-    />
+    .admin-student-actions {
+      margin-top: 20px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
 
-    <label>Email (username)</label>
-    <input
-      type="email"
-      name="email"
-      value="{{ old('email', $student->email) }}"
-      required
-    />
+    /* Same pill button style as create.blade.php */
+    .generate-pill-btn {
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      font-size: 14px;
+      color: #4338ca;
+      cursor: pointer;
+      transition: 0.2s;
+      width: 100%;
+      text-align: center;
+      user-select: none;
+    }
+    .generate-pill-btn:hover {
+      background: #e0e7ff;
+    }
+    .generate-pill-btn.done {
+      background: #dcfce7 !important;
+      border-color: #86efac !important;
+      color: #166534 !important;
+    }
 
-    {{-- Parent contact fields --}}
-    <label>Parent Name</label>
-    <input
-      type="text"
-      name="parent_name"
-      value="{{ old('parent_name', $student->parent_name) }}"
-      placeholder="e.g. Fatima Al Zahra"
-    />
+    /* Slightly stronger hover for the delete button */
+    .btn-danger:hover {
+      background: #dc2626;
+      border-color: #b91c1c;
+      color: #ffffff;
+    }
+  </style>
 
-    <label>Parent Email</label>
-    <input
-      type="email"
-      name="parent_email"
-      value="{{ old('parent_email', $student->parent_email) }}"
-      placeholder="e.g. parent@example.com"
-    />
+  <div class="admin-student-page">
+    <h2>Edit Student</h2>
+    <p class="admin-student-subtitle">
+      Update student details, parent contacts, password, or teacher assignment.
+    </p>
 
-    <label>Parent Phone</label>
-    <input
-      type="text"
-      name="parent_phone"
-      value="{{ old('parent_phone', $student->parent_phone) }}"
-      placeholder="+971 50 123 4567"
-    />
+    {{-- Scoped flash messages --}}
+    @if(session('ok_edit'))
+      <div class="flash">{{ session('ok_edit') }}</div>
+    @endif
 
-    <div style="display:grid; grid-template-columns: 1fr auto; gap:12px; align-items:center;">
-      <div>
-        <label>Set new password (optional)</label>
-        <input
-          type="text"
-          name="password"
-          placeholder="Leave blank to keep current"
-          value="{{ old('password') }}"
-        />
+    @if(session('generated_password_students'))
+      <div class="flash">
+        Generated password:
+        <code>{{ session('generated_password_students') }}</code>
+        — copy it now; it will not be shown again.
       </div>
+    @endif
 
-      <div style="margin-top:22px;">
-        <label style="display:flex; gap:8px; align-items:center;">
+    {{-- Validation errors --}}
+    @if ($errors->any())
+      <div class="flash flash--error">
+        <ul style="margin:0; padding-left:18px;">
+          @foreach ($errors->all() as $e)
+            <li>{{ $e }}</li>
+          @endforeach
+        </ul>
+      </div>
+    @endif
+
+    {{-- Main update form --}}
+    <form method="POST" action="{{ route('admin.students.update', $student) }}">
+      @csrf
+      @method('PUT')
+
+      <div class="admin-student-form">
+        <div>
+          <label>Full name</label>
           <input
-            type="checkbox"
-            name="generate_password"
-            value="1"
-            {{ old('generate_password') ? 'checked' : '' }}
-          >
-          <span>Generate strong password</span>
-        </label>
+            type="text"
+            name="name"
+            value="{{ old('name', trim($student->first_name.' '.$student->last_name)) }}"
+            required
+          />
+        </div>
+
+        <div>
+          <label>Email (username)</label>
+          <input
+            type="email"
+            name="email"
+            value="{{ old('email', $student->email) }}"
+            required
+          />
+        </div>
+
+        {{-- Parent contact fields --}}
+        <div>
+          <label>Parent Name</label>
+          <input
+            type="text"
+            name="parent_name"
+            value="{{ old('parent_name', $student->parent_name) }}"
+            placeholder="e.g. Fatima Al Zahra"
+          />
+        </div>
+
+        <div>
+          <label>Parent Email</label>
+          <input
+            type="email"
+            name="parent_email"
+            value="{{ old('parent_email', $student->parent_email) }}"
+            placeholder="e.g. parent@example.com"
+          />
+        </div>
+
+        <div>
+          <label>Parent Phone</label>
+          <input
+            type="text"
+            name="parent_phone"
+            value="{{ old('parent_phone', $student->parent_phone) }}"
+            placeholder="+971 50 123 4567"
+          />
+        </div>
+
+        <div class="admin-student-inline-row">
+          <div>
+            <label>Set new password (optional)</label>
+            <input
+              type="text"
+              name="password"
+              id="edit-password-field"
+              placeholder="Leave blank to keep current"
+              value="{{ old('password') }}"
+            />
+          </div>
+
+          <div>
+            {{-- Same pill button style as create page --}}
+            <button
+              type="button"
+              id="generate-pass-btn"
+              class="generate-pill-btn"
+            >
+              Generate strong password
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label>Assign to teacher (optional)</label>
+          <select name="assign_to">
+            <option value="">— Unassigned —</option>
+            @foreach($teachers as $t)
+              <option value="{{ $t->id }}"
+                {{ (string) old('assign_to', $student->teacher_id) === (string) $t->id ? 'selected' : '' }}>
+                {{ $t->name }}
+              </option>
+            @endforeach
+          </select>
+        </div>
       </div>
-    </div>
 
-    <label>Assign to teacher (optional)</label>
-    <select name="assign_to">
-      <option value="">— Unassigned —</option>
-      @foreach($teachers as $t)
-        <option value="{{ $t->id }}"
-          {{ (string) old('assign_to', $student->teacher_id) === (string) $t->id ? 'selected' : '' }}>
-          {{ $t->name }}
-        </option>
-      @endforeach
-    </select>
+      <div class="admin-student-actions">
+        <button class="btn" type="submit">Save Changes</button>
 
-    <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
-      <button class="btn" type="submit">Save Changes</button>
-      <a class="btn" href="{{ route('admin.students.index') }}">Cancel</a>
-    </div>
-  </form>
+  <button
+    type="button"
+    class="btn"
+    onclick="window.location='{{ route('admin.students.index') }}'"
+  >
+    Cancel
+  </button>
 
-  {{-- Secondary actions: reset / delete --}}
-  <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
-    <form method="POST" action="{{ route('admin.students.reset', $student) }}" style="display:inline">
-      @csrf
-      <input type="hidden" name="generate" value="1">
-      <button class="btn" type="submit">Reset Password</button>
-    </form>
+        <form method="POST" action="{{ route('admin.students.reset', $student) }}" style="display:inline">
+          @csrf
+          <input type="hidden" name="generate" value="1">
+          <button class="btn" type="submit">Reset Password</button>
+        </form>
 
-    <form method="POST" action="{{ route('admin.students.destroy', $student) }}" style="display:inline"
-          onsubmit="return confirm('Delete this student? This does not remove their user account.');">
-      @csrf
-      @method('DELETE')
-      <button class="btn btn-danger" type="submit">Delete</button>
+        <form method="POST" action="{{ route('admin.students.destroy', $student) }}" style="display:inline"
+              onsubmit="return confirm('Delete this student? This does not remove their user account.');">
+          @csrf
+          @method('DELETE')
+          <button class="btn btn-danger" type="submit">Delete</button>
+        </form>
+      </div>
     </form>
   </div>
-@endsection
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('generate-pass-btn');
+  const pw  = document.querySelector('input[name="password"]');
+
+  if (!btn || !pw) return;
+
+  // Same password generation rule as create.blade.php
+  function generateEasyStrongPassword() {
+    const upper   = "ABCDEFGHJKLMNPQRSTUVWXYZ";     // No I, O
+    const lower   = "abcdefghijkmnopqrstuvwxyz";    // No l
+    const digits  = "23456789";                    // No 0,1
+    const symbols = "!@#$%";
+
+    const all = upper + lower + digits + symbols;
+
+    // Ensure one from each group
+    let pass = "";
+    pass += upper[Math.floor(Math.random() * upper.length)];
+    pass += lower[Math.floor(Math.random() * lower.length)];
+    pass += digits[Math.floor(Math.random() * digits.length)];
+    pass += symbols[Math.floor(Math.random() * symbols.length)];
+
+    // Fill to 8 chars total
+    for (let i = 0; i < 4; i++) {
+      pass += all[Math.floor(Math.random() * all.length)];
+    }
+
+    // Shuffle characters
+    return pass.split("").sort(() => 0.5 - Math.random()).join("");
+  }
+
+  btn.addEventListener('click', () => {
+    const strong = generateEasyStrongPassword();
+
+    pw.value = strong;
+    pw.focus();
+    pw.select();
+
+    btn.classList.add("done");
+    btn.textContent = "Password generated!";
+
+    setTimeout(() => {
+      btn.classList.remove("done");
+      btn.textContent = "Generate strong password";
+    }, 2000);
+  });
+});
+</script>
+@endsection      

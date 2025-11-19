@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use App\Models\Student;
 
 class User extends Authenticatable
 {
@@ -17,7 +18,8 @@ class User extends Authenticatable
 
     /**
      * Mass assignable attributes.
-     * NOTE: Adding 'role' and 'supervising_teacher_id' is non-breaking; they’ll be ignored
+     *
+     * NOTE: Adding 'role' and 'supervising_teacher_id' is non-breaking; they will be ignored
      * if the columns don’t exist yet (just don’t try to mass-assign before migration).
      *
      * @var list<string>
@@ -26,8 +28,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role',                    // 👈 new (will be added by migration)
-        'supervising_teacher_id',  // 👈 optional link student → teacher
+        'role',                    // new (will be added by migration)
+        'supervising_teacher_id',  // optional link student → teacher
     ];
 
     /**
@@ -50,16 +52,16 @@ class User extends Authenticatable
         return [
             'email_verified_at'      => 'datetime',
             'password'               => 'hashed',
-            'role'                   => 'string',   // 👈 new
-            'supervising_teacher_id' => 'integer',  // 👈 new (safe even if column absent)
+            'role'                   => 'string',   // new
+            'supervising_teacher_id' => 'integer',  // new (safe even if column absent)
         ];
     }
 
-    // ─────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
     // ToK Feedback App Relationships & Helpers
-    // ─────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
 
-    /** A student’s submissions (exhibition + essay). */
+    /** A student's submissions (exhibition + essay). */
     public function submissions()
     {
         return $this->hasMany(\App\Models\Submission::class, 'student_id');
@@ -71,13 +73,13 @@ class User extends Authenticatable
         return $this->submissions()->where('type', $type)->first();
     }
 
-    /** A teacher’s students (if supervising_teacher_id column exists). */
+    /** A teacher's students (if supervising_teacher_id column exists). */
     public function students()
     {
         return $this->hasMany(self::class, 'supervising_teacher_id');
     }
 
-    /** A student’s supervising teacher (if supervising_teacher_id column exists). */
+    /** A student's supervising teacher (if supervising_teacher_id column exists). */
     public function teacher()
     {
         return $this->belongsTo(self::class, 'supervising_teacher_id');
@@ -89,9 +91,15 @@ class User extends Authenticatable
         return $this->hasMany(\App\Models\GeneralMessage::class, 'sender_id');
     }
 
-    // ─────────────────────────────────────────────────────────────
+    /** Link to the Student profile row (students table) for this user, if any. */
+    public function student()
+    {
+        return $this->hasOne(Student::class);
+    }
+
+    // -------------------------------------------------------------------------
     // Role helpers (non-breaking; return false if role column absent)
-    // ─────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
 
     public function isStudent(): bool
     {
@@ -115,9 +123,9 @@ class User extends Authenticatable
         return $r === self::ROLE_TEACHER || $r === self::ROLE_ADMIN;
     }
 
-    // ─────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
     // Scopes (safe even before the role migration)
-    // ─────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
 
     public function scopeStudents($q)
     {

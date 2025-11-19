@@ -22,7 +22,7 @@
     // Always have a collection
     $students = $students ?? collect();
 
-    // Sort alphabetically by name (safe: if name missing, it just treats as null)
+    // Sort alphabetically by name
     $students = $students->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->values();
 
     // Which student (if any) was chosen via ?student_id=...
@@ -74,15 +74,15 @@
       <div class="tok-admin-col">
         <h2 class="dash-title">Student insights</h2>
         <p class="dash-sub">
-          Search or browse to view an individual student’s progress and activity.
+          Search to view an individual student’s progress and activity.
         </p>
       </div>
     </div>
 
-    {{-- Student selector (single source of truth) --}}
+    {{-- Student selector --}}
     <div class="tok-admin-row">
       <div class="tok-admin-col">
-        <div class="card">
+        <div class="card student-search-card">
           <div class="card-header">
             <h3>Find a student</h3>
           </div>
@@ -90,49 +90,34 @@
           <div class="card-body">
             <form method="GET" action="{{ route('admin.dashboard') }}">
               <div class="selector-grid">
-                <div class="selector-field">
+                <div class="selector-field" style="position:relative;">
                   <label for="student-search">Search by name</label>
+
                   <input
                     type="search"
                     id="student-search"
                     placeholder="Start typing a student name…"
+                    autocomplete="off"
                   >
-                </div>
 
-                <div class="selector-field">
-                  <label for="student-select">Browse alphabetically</label>
-                  <select
-                    id="student-select"
-                    name="student_id"
-                    data-selected-id="{{ $selectedId }}"
-                  >
-                    <option value="">Select a student…</option>
-                    @foreach ($students as $student)
-                      <option
-                        value="{{ $student->id }}"
-                        {{ $selectedId === $student->id ? 'selected' : '' }}
-                      >
-                        {{ $student->name }}
-                      </option>
-                    @endforeach
-                  </select>
+                  {{-- Hidden field that stores the selected student ID --}}
+                  <input type="hidden" name="student_id" id="student-id-hidden">
+
+                  {{-- Autocomplete results --}}
+                  <div id="student-results" class="autocomplete-list"></div>
                 </div>
 
                 <div class="selector-actions">
                   <button type="submit" id="student-view-btn">View student</button>
-                  <small class="selector-hint">
-                    Select a student, then click “View student” to update the progress bars below.
-                  </small>
                 </div>
               </div>
             </form>
           </div>
-
         </div>
       </div>
     </div>
 
-    {{-- Progress overview --}}
+    {{-- Progress overview + writing metrics --}}
     <div class="tok-admin-row">
       <div class="tok-admin-col">
         <div class="card progress-card">
@@ -186,7 +171,7 @@
                 </div>
               </div>
 
-                            {{-- NEW: quick links into workspaces --}}
+              {{-- Quick links into workspaces --}}
               @if ($selectedStudent && !empty($selectedUserId))
                 <div class="workspace-links">
                   <a
@@ -209,6 +194,72 @@
                 Progress is based on the latest teacher-selected stage for each component
                 (No submission → Drafts → Final → Approved).
               </p>
+
+              {{-- Writing activity metrics --}}
+              @if (!empty($studentMetrics))
+                @php
+                  $ex = $studentMetrics['exhibition'] ?? [];
+                  $es = $studentMetrics['essay'] ?? [];
+
+                  $formatDelta = function ($n) {
+                      $n = (int) $n;
+                      if ($n > 0) return '+' . number_format($n);
+                      if ($n < 0) return number_format($n); // will show "-"
+                      return '0';
+                  };
+                @endphp
+
+                <div style="margin-top:24px; border-top:1px solid #e5e7eb; padding-top:16px;">
+                  <h3 style="font-size:14px; font-weight:600; margin:0 0 4px;">Writing activity</h3>
+                  <p class="dash-sub" style="margin-bottom:12px;">
+                    Snapshot of current word count and recent writing activity for this student.
+                  </p>
+
+                  <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                    <thead>
+                      <tr>
+                        <th style="text-align:left; padding:6px 0; border-bottom:1px solid #e5e7eb;">Component</th>
+                        <th style="text-align:left; padding:6px 0; border-bottom:1px solid #e5e7eb;">Current word count</th>
+                        <th style="text-align:left; padding:6px 0; border-bottom:1px solid #e5e7eb;">Words added (last 7 days)</th>
+                        <th style="text-align:left; padding:6px 0; border-bottom:1px solid #e5e7eb;">Active days (last 30 days)</th>
+                        <th style="text-align:left; padding:6px 0; border-bottom:1px solid #e5e7eb;">Last edit</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td style="padding:6px 0;">Exhibition</td>
+                        <td style="padding:6px 0;">
+                          {{ number_format($ex['current_words'] ?? 0) }}
+                        </td>
+                        <td style="padding:6px 0;">
+                          {{ $formatDelta($ex['words_added_7'] ?? 0) }}
+                        </td>
+                        <td style="padding:6px 0;">
+                          {{ (int)($ex['active_days_30'] ?? 0) }}
+                        </td>
+                        <td style="padding:6px 0; color:#6b7280;">
+                          {{ $ex['last_edit_human'] ?? '—' }}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px 0;">Essay</td>
+                        <td style="padding:6px 0;">
+                          {{ number_format($es['current_words'] ?? 0) }}
+                        </td>
+                        <td style="padding:6px 0;">
+                          {{ $formatDelta($es['words_added_7'] ?? 0) }}
+                        </td>
+                        <td style="padding:6px 0;">
+                          {{ (int)($es['active_days_30'] ?? 0) }}
+                        </td>
+                        <td style="padding:6px 0; color:#6b7280;">
+                          {{ $es['last_edit_human'] ?? '—' }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              @endif
             @endif
           </div>
         </div>
@@ -254,10 +305,16 @@
       overflow: hidden;
     }
 
+    /* Let the search card's dropdown escape the card bounds */
+    .student-search-card {
+      overflow: visible;
+    }
+
     .card-header {
       padding: 12px 16px;
       border-bottom: 1px solid #e5e7eb;
-      background: linear-gradient(90deg,#0b6bd6,#22c55e);
+      background: #0b6bd6;
+      border-radius: 16px;
       color: #ffffff;
     }
 
@@ -290,8 +347,7 @@
       margin-bottom: 4px;
     }
 
-    .selector-field input,
-    .selector-field select {
+    .selector-field input {
       width: 100%;
       padding: 8px 10px;
       border-radius: 10px;
@@ -428,66 +484,94 @@
         padding-right: 8px;
       }
     }
+
+    /* Autocomplete dropdown */
+    .autocomplete-list {
+      position: absolute;
+      top: 60px;
+      left: 0;
+      right: 0;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+      z-index: 20;
+      max-height: 220px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .autocomplete-item {
+      padding: 8px 10px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .autocomplete-item:hover {
+      background: #f3f4f6;
+    }
   </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const search   = document.getElementById('student-search');
-    const dropdown = document.getElementById('student-select');
+document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('student-search');
+    const resultsDiv  = document.getElementById('student-results');
+    const hiddenField = document.getElementById('student-id-hidden');
 
-    if (!search || !dropdown) {
-        console.warn('Student search wiring: elements not found');
-        return;
-    }
+    if (!searchInput || !resultsDiv || !hiddenField) return;
 
-    const selectedId = String(dropdown.dataset.selectedId || '');
+    // Build JS dataset from PHP
+    const students = @json($students->map(fn($s) => [
+        'id'   => $s->id,
+        'name' => $s->name,
+    ]));
 
-    // Take a snapshot of all options (including placeholder) BEFORE we mutate anything
-    const allOptions = Array.from(dropdown.options).map(opt => ({
-        value: opt.value,
-        label: opt.textContent,
-        isPlaceholder: !opt.value,
-    }));
+    function showResults(list) {
+        resultsDiv.innerHTML = '';
+        if (!list.length) {
+            resultsDiv.style.display = 'none';
+            return;
+        }
 
-    function render(query) {
-        const q = String(query || '').trim().toLowerCase();
+        list.forEach(st => {
+            const item = document.createElement('div');
+            item.className = 'autocomplete-item';
+            item.textContent = st.name;
+            item.dataset.id = st.id;
 
-        // Clear current options
-        dropdown.innerHTML = '';
-
-        // Always keep a placeholder at the top
-        const placeholderDef =
-            allOptions.find(o => o.isPlaceholder) ||
-            { value: '', label: 'Select a student…', isPlaceholder: true };
-
-        const placeholderOpt = document.createElement('option');
-        placeholderOpt.value = placeholderDef.value;
-        placeholderOpt.textContent = placeholderDef.label;
-        dropdown.appendChild(placeholderOpt);
-
-        // Add only matching students
-        allOptions
-            .filter(o => !o.isPlaceholder)
-            .filter(o => !q || o.label.toLowerCase().includes(q))
-            .forEach(o => {
-                const opt = document.createElement('option');
-                opt.value = o.value;
-                opt.textContent = o.label;
-
-                if (selectedId && o.value === selectedId) {
-                    opt.selected = true;
-                }
-
-                dropdown.appendChild(opt);
+            item.addEventListener('click', () => {
+                searchInput.value = st.name;
+                hiddenField.value = st.id;
+                resultsDiv.style.display = 'none';
             });
+
+            resultsDiv.appendChild(item);
+        });
+
+        resultsDiv.style.display = 'block';
     }
 
-    // Initial render (empty query)
-    render(search.value);
+    searchInput.addEventListener('input', () => {
+        const q = searchInput.value.trim().toLowerCase();
 
-    // Live filtering as the user types
-    search.addEventListener('input', function () {
-        render(search.value);
+        if (!q) {
+            hiddenField.value = '';
+            showResults([]);
+            return;
+        }
+
+        const matches = students.filter(s =>
+            s.name.toLowerCase().includes(q)
+        );
+
+        showResults(matches);
+    });
+
+    // Hide when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!resultsDiv.contains(e.target) && e.target !== searchInput) {
+            resultsDiv.style.display = 'none';
+        }
     });
 });
 </script>
