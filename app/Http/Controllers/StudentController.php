@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;           // ✅ stages + meta lookups
+use Illuminate\Support\Facades\DB;
 use App\Models\Teacher;
 use App\Models\Student;
-use App\Models\CheckpointStatus;            // ✅ Existing
+use App\Models\CheckpointStatus;
+use App\Models\User;
+use App\Services\StudentMetrics;
 
 class StudentController extends Controller
 {
@@ -54,13 +56,30 @@ class StudentController extends Controller
             ]);
         }
 
+        // Teacher’s own students (paginated)
         $students = Student::where('teacher_id', $teacher->id)
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->paginate(20);
 
+        $pageStudents = $students->getCollection(); // Eloquent\Collection of current page
+        $pageIds      = $pageStudents->pluck('id');
+
+        // Resolve user_ids for each student on this page (for workspace + metrics)
+        $studentUserIds = [];
+        foreach ($pageStudents as $s) {
+            $uid = $s->user_id ?? null;
+
+            if (!$uid && $s->email) {
+                $uid = User::where('email', $s->email)->value('id');
+            }
+
+            // Make sure StudentMetrics sees the resolved user ID
+            $s->user_id = $uid;
+            $studentUserIds[$s->id] = $uid;
+        }
+
         // ✅ Fetch checkpoint statuses only for the students on this page
-        $pageIds = $students->getCollection()->pluck('id'); // works with paginator
         $statuses = $pageIds->isNotEmpty()
             ? CheckpointStatus::whereIn('student_id', $pageIds)->get()->groupBy('student_id')
             : collect();
@@ -72,8 +91,7 @@ class StudentController extends Controller
             ->orderByRaw('COALESCE(display_order, 9999)')
             ->get();
 
-        // ✅ NEW: status meta (last updated + who) for each (student_id, type)
-        // Produces: $statusMeta[student_id][type] = ['status_code'=>..., 'selected_at'=>..., 'selected_by_name'=>...]
+        // ✅ Status meta (last updated + who) for each (student_id, type)
         $metaRows = $pageIds->isNotEmpty()
             ? DB::table('checkpoint_statuses as cs')
                 ->leftJoin('users as u', 'u.id', '=', 'cs.selected_by')
@@ -94,11 +112,26 @@ class StudentController extends Controller
                 })->toArray();
             })->toArray();
 
+        // ✅ NEW: full metrics bundle per student (same engine as Admin dashboard)
+        $metricsService   = app(StudentMetrics::class);
+        $metricsByStudent = [];
+
+        foreach ($pageStudents as $s) {
+            $bundle = $metricsService->buildForStudent($s);
+
+            // Override with our resolved user ID (same trick as AdminController)
+            $bundle['selectedUserId'] = $studentUserIds[$s->id] ?? ($bundle['selectedUserId'] ?? null);
+
+            $metricsByStudent[$s->id] = $bundle;
+        }
+
         return view('students.index', [
-            'students'   => $students,
-            'statuses'   => $statuses,
-            'stages'     => $stages,     // ✅ for the dropdown partial
-            'statusMeta' => $statusMeta, // ✅ optional meta (“Updated … by …”)
+            'students'        => $students,
+            'statuses'        => $statuses,
+            'stages'          => $stages,         // for dropdowns
+            'statusMeta'      => $statusMeta,     // for “Updated … by …”
+            'metricsByStudent'=> $metricsByStudent,
+            'studentUserIds'  => $studentUserIds, // for workspace links
         ]);
     }
 

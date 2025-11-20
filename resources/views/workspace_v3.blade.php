@@ -519,7 +519,11 @@ a.btn:focus-visible {
 </div>
   
       <button class="btn" id="wk3-btn-toggle-threads" type="button">Hide threads</button>
-      <button class="btn" id="wk3-btn-resources" type="button">ToK Resources</button>
+      <a href="{{ route('resources.index') }}" 
+   class="btn inline-flex items-center justify-center" 
+   id="wk3-btn-resources">
+    ToK Resources
+</a>
       @php
   $dashRoute = match(optional(Auth::user())->role) {
     'student' => 'student.dashboard',

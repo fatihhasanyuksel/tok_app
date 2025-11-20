@@ -1,4 +1,0 @@
-
-  web.php
-  api.php
-  console.php

@@ -20,7 +20,6 @@ class DatabaseSeeder extends Seeder
         // Always create or update the admin teacher account
         $this->call([
             AdminTeacherSeeder::class,
-            CheckpointDeadlinesSeeder::class,
             CheckpointStatusesSeeder::class,
         ]);
     }

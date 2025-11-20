@@ -16,56 +16,6 @@
     You are logged in as <strong>{{ auth()->user()->name }}</strong> ({{ auth()->user()->role }}).
   </p>
 
-@php
-    use App\Models\CheckpointStatus;
-
-    // Always have a collection
-    $students = $students ?? collect();
-
-    // Sort alphabetically by name
-    $students = $students->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->values();
-
-    // Which student (if any) was chosen via ?student_id=...
-    $selectedId = request()->integer('student_id');
-    $selectedStudent = $selectedId
-        ? $students->firstWhere('id', $selectedId)
-        : null;
-
-    // Map stage keys -> label + progress %
-    $stageMap = [
-        'no_submission' => ['label' => 'No submission', 'percent' => 0],
-        'draft_1'       => ['label' => 'Draft 1',        'percent' => 25],
-        'draft_2'       => ['label' => 'Draft 2',        'percent' => 50],
-        'draft_3'       => ['label' => 'Draft 3',        'percent' => 75],
-        'final'         => ['label' => 'Final',          'percent' => 90],
-        'approved'      => ['label' => 'Approved',       'percent' => 100],
-    ];
-
-    // Default structure so blade doesn't explode if nothing is selected
-    $progress = [
-        'exhibition' => ['percent' => 0, 'label' => 'NO SUBMISSION', 'raw' => 'no_submission'],
-        'essay'      => ['percent' => 0, 'label' => 'NO SUBMISSION', 'raw' => 'no_submission'],
-    ];
-
-    if ($selectedStudent) {
-        foreach (['exhibition', 'essay'] as $type) {
-            $status = CheckpointStatus::where('student_id', $selectedStudent->id)
-                ->where('type', $type)              // 'exhibition' or 'essay'
-                ->latest('selected_at')
-                ->first();
-
-            $key  = $status->status_code ?? 'no_submission';
-            $meta = $stageMap[$key] ?? $stageMap['no_submission'];
-
-            $progress[$type] = [
-                'percent' => $meta['percent'],
-                'label'   => strtoupper($meta['label']),
-                'raw'     => $key,
-            ];
-        }
-    }
-  @endphp
-
   <hr style="margin: 24px 0; border-color:#e5e7eb;">
 
   <div class="tok-admin-shell">
@@ -82,7 +32,7 @@
     {{-- Student selector --}}
     <div class="tok-admin-row">
       <div class="tok-admin-col">
-        <div class="card student-search-card">
+        <div class="card">
           <div class="card-header">
             <h3>Find a student</h3>
           </div>
@@ -90,6 +40,8 @@
           <div class="card-body">
             <form method="GET" action="{{ route('admin.dashboard') }}">
               <div class="selector-grid">
+
+                {{-- Search field with autocomplete --}}
                 <div class="selector-field" style="position:relative;">
                   <label for="student-search">Search by name</label>
 
@@ -100,16 +52,18 @@
                     autocomplete="off"
                   >
 
-                  {{-- Hidden field that stores the selected student ID --}}
+                  {{-- Hidden field where selected student ID is stored --}}
                   <input type="hidden" name="student_id" id="student-id-hidden">
 
-                  {{-- Autocomplete results --}}
+                  {{-- Autocomplete dropdown --}}
                   <div id="student-results" class="autocomplete-list"></div>
                 </div>
 
+                {{-- View button --}}
                 <div class="selector-actions">
                   <button type="submit" id="student-view-btn">View student</button>
                 </div>
+
               </div>
             </form>
           </div>
@@ -117,154 +71,25 @@
       </div>
     </div>
 
-    {{-- Progress overview + writing metrics --}}
+    {{-- Student metrics section (shared partial) --}}
     <div class="tok-admin-row">
       <div class="tok-admin-col">
-        <div class="card progress-card">
-          <div class="card-header">
-            <h3>Progress overview</h3>
-          </div>
+        @php
+            // Make sure variables exist so partial never breaks
+            $studentMetrics = $studentMetrics ?? [];
+            $selectedUserId = $selectedUserId ?? null;
+        @endphp
 
-          <div class="card-body">
-            @if (! $selectedStudent)
-              <p class="dash-sub">
-                Select a student above and click <strong>“View student”</strong> to see their Exhibition and Essay progress.
-              </p>
-            @else
-              <p style="margin:0 0 16px; font-size:14px;">
-                Showing progress for <strong>{{ $selectedStudent->name }}</strong>.
-              </p>
-
-              <div class="progress-grid">
-                {{-- Exhibition --}}
-                <div class="progress-line">
-                  <div class="progress-label">
-                    <span>Exhibition</span>
-                    <span class="stage-pill">
-                      {{ $progress['exhibition']['label'] }}
-                      ({{ $progress['exhibition']['percent'] }}%)
-                    </span>
-                  </div>
-                  <div class="progress-track">
-                    <div
-                      class="progress-fill"
-                      style="width: {{ $progress['exhibition']['percent'] }}%;"
-                    ></div>
-                  </div>
-                </div>
-
-                {{-- Essay --}}
-                <div class="progress-line">
-                  <div class="progress-label">
-                    <span>Essay</span>
-                    <span class="stage-pill stage-pill-secondary">
-                      {{ $progress['essay']['label'] }}
-                      ({{ $progress['essay']['percent'] }}%)
-                    </span>
-                  </div>
-                  <div class="progress-track">
-                    <div
-                      class="progress-fill progress-fill-secondary"
-                      style="width: {{ $progress['essay']['percent'] }}%;"
-                    ></div>
-                  </div>
-                </div>
-              </div>
-
-              {{-- Quick links into workspaces --}}
-              @if ($selectedStudent && !empty($selectedUserId))
-                <div class="workspace-links">
-                  <a
-                    href="{{ route('workspace.show', ['type' => 'exhibition']) }}?student={{ $selectedUserId }}"
-                    class="workspace-link-btn"
-                  >
-                    Open Exhibition workspace
-                  </a>
-
-                  <a
-                    href="{{ route('workspace.show', ['type' => 'essay']) }}?student={{ $selectedUserId }}"
-                    class="workspace-link-btn workspace-link-btn-secondary"
-                  >
-                    Open Essay workspace
-                  </a>
-                </div>
-              @endif
-
-              <p class="dash-sub" style="margin-top:16px;">
-                Progress is based on the latest teacher-selected stage for each component
-                (No submission → Drafts → Final → Approved).
-              </p>
-
-              {{-- Writing activity metrics --}}
-              @if (!empty($studentMetrics))
-                @php
-                  $ex = $studentMetrics['exhibition'] ?? [];
-                  $es = $studentMetrics['essay'] ?? [];
-
-                  $formatDelta = function ($n) {
-                      $n = (int) $n;
-                      if ($n > 0) return '+' . number_format($n);
-                      if ($n < 0) return number_format($n); // will show "-"
-                      return '0';
-                  };
-                @endphp
-
-                <div style="margin-top:24px; border-top:1px solid #e5e7eb; padding-top:16px;">
-                  <h3 style="font-size:14px; font-weight:600; margin:0 0 4px;">Writing activity</h3>
-                  <p class="dash-sub" style="margin-bottom:12px;">
-                    Snapshot of current word count and recent writing activity for this student.
-                  </p>
-
-                  <table style="width:100%; border-collapse:collapse; font-size:13px;">
-                    <thead>
-                      <tr>
-                        <th style="text-align:left; padding:6px 0; border-bottom:1px solid #e5e7eb;">Component</th>
-                        <th style="text-align:left; padding:6px 0; border-bottom:1px solid #e5e7eb;">Current word count</th>
-                        <th style="text-align:left; padding:6px 0; border-bottom:1px solid #e5e7eb;">Words added (last 7 days)</th>
-                        <th style="text-align:left; padding:6px 0; border-bottom:1px solid #e5e7eb;">Active days (last 30 days)</th>
-                        <th style="text-align:left; padding:6px 0; border-bottom:1px solid #e5e7eb;">Last edit</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td style="padding:6px 0;">Exhibition</td>
-                        <td style="padding:6px 0;">
-                          {{ number_format($ex['current_words'] ?? 0) }}
-                        </td>
-                        <td style="padding:6px 0;">
-                          {{ $formatDelta($ex['words_added_7'] ?? 0) }}
-                        </td>
-                        <td style="padding:6px 0;">
-                          {{ (int)($ex['active_days_30'] ?? 0) }}
-                        </td>
-                        <td style="padding:6px 0; color:#6b7280;">
-                          {{ $ex['last_edit_human'] ?? '—' }}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding:6px 0;">Essay</td>
-                        <td style="padding:6px 0;">
-                          {{ number_format($es['current_words'] ?? 0) }}
-                        </td>
-                        <td style="padding:6px 0;">
-                          {{ $formatDelta($es['words_added_7'] ?? 0) }}
-                        </td>
-                        <td style="padding:6px 0;">
-                          {{ (int)($es['active_days_30'] ?? 0) }}
-                        </td>
-                        <td style="padding:6px 0; color:#6b7280;">
-                          {{ $es['last_edit_human'] ?? '—' }}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              @endif
-            @endif
-          </div>
-        </div>
+        @include('partials.student_metrics', [
+            'selectedStudent' => $selectedStudent,
+            'progress'        => $progress,
+            'studentMetrics'  => $studentMetrics,
+            'selectedUserId'  => $selectedUserId,
+            'emptyMessage'    => 'Select a student above and click “View student” to see their Exhibition and Essay progress.',
+        ])
       </div>
     </div>
+
   </div>
 
   <style>
@@ -297,24 +122,10 @@
       font-size: 14px;
     }
 
-    .card {
-      background: #ffffff;
-      border-radius: 16px;
-      border: 1px solid #e5e7eb;
-      box-shadow: 0 10px 25px rgba(15,23,42,0.06);
-      overflow: hidden;
-    }
-
-    /* Let the search card's dropdown escape the card bounds */
-    .student-search-card {
-      overflow: visible;
-    }
-
     .card-header {
       padding: 12px 16px;
       border-bottom: 1px solid #e5e7eb;
       background: #0b6bd6;
-      border-radius: 16px;
       color: #ffffff;
     }
 
@@ -382,7 +193,7 @@
       color: #9ca3af;
     }
 
-    /* Progress section */
+    /* Progress section – classes used by partial */
     .progress-grid {
       display: flex;
       flex-direction: column;
@@ -443,7 +254,7 @@
       background: linear-gradient(90deg,#059669,#22c55e);
     }
 
-    /* Workspace link buttons */
+    /* Workspace link buttons – used inside partial if you kept them there */
     .workspace-links {
       margin-top: 16px;
       display: flex;
@@ -569,9 +380,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Hide when clicking outside
     document.addEventListener('click', (e) => {
-        if (!resultsDiv.contains(e.target) && e.target !== searchInput) {
-            resultsDiv.style.display = 'none';
-        }
+      if (!resultsDiv.contains(e.target) && e.target !== searchInput) {
+          resultsDiv.style.display = 'none';
+      }
     });
 });
 </script>

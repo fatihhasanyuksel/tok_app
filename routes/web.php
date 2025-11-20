@@ -26,10 +26,6 @@ use App\Http\Controllers\StudentStartController;
 use App\Http\Controllers\CheckpointStatusController; // Checkpoints (statuses)
 use App\Http\Controllers\Admin\CheckpointStageController; // Admin stages
 
-// TipTap rich text API + Upload controller
-use App\Http\Controllers\Tok\RichTextController;
-use App\Http\Controllers\Tok\UploadController;
-
 // Persist PM positions
 use App\Http\Controllers\ThreadPositionsController;
 
@@ -91,8 +87,8 @@ Route::middleware('web')->group(function () {
         ->name('workspace.save');
         
     Route::post('/workspace/{type}/upload', [FeedbackController::class, 'upload'])
-    ->whereIn('type', ['exhibition', 'essay'])
-    ->name('workspace.upload');
+        ->whereIn('type', ['exhibition', 'essay'])
+        ->name('workspace.upload');
 
     Route::get('/workspace/{type}/history', [FeedbackController::class, 'history'])
         ->whereIn('type', ['exhibition', 'essay'])
@@ -108,9 +104,9 @@ Route::middleware('web')->group(function () {
         ->name('workspace.restore');
     
     Route::get('/workspace/{type}/version/{version}', [\App\Http\Controllers\FeedbackController::class, 'showVersion'])
-    ->whereIn('type', ['exhibition', 'essay'])
-    ->whereNumber('version')
-    ->name('workspace.version');
+        ->whereIn('type', ['exhibition', 'essay'])
+        ->whereNumber('version')
+        ->name('workspace.version');
 });
 
 /*
@@ -292,54 +288,3 @@ Route::middleware(['web', 'auth'])->group(function () {
         ->withoutMiddleware([FrameworkVerifyCsrf::class])
         ->whereNumber('thread');
 });
-
-/*
-|--------------------------------------------------------------------------
-| ToK Rich Text Editor API (session-auth; TipTap integration)
-|--------------------------------------------------------------------------
-| Lives under /api/tok, uses session auth. Patch/Post bypass CSRF only.
-*/
-Route::middleware(['web', 'auth'])->prefix('api/tok')->group(function () {
-    Route::get('/docs/{owner_type}/{owner_id}', [RichTextController::class, 'show'])
-        ->where(['owner_type' => '[A-Za-z_-]+', 'owner_id' => '[0-9]+']);
-
-    Route::patch('/docs/{owner_type}/{owner_id}', [RichTextController::class, 'autosave'])
-        ->withoutMiddleware([FrameworkVerifyCsrf::class])
-        ->where(['owner_type' => '[A-Za-z_-]+', 'owner_id' => '[0-9]+']);
-
-    Route::post('/docs/{owner_type}/{owner_id}/commit', [RichTextController::class, 'commit'])
-        ->withoutMiddleware([FrameworkVerifyCsrf::class])
-        ->where(['owner_type' => '[A-Za-z_-]+', 'owner_id' => '[0-9]+']);
-
-    Route::post('/uploads/images', [UploadController::class, 'store'])
-        ->name('tok.uploads.images'); // keep CSRF for uploads
-});
-
-/*
-|--------------------------------------------------------------------------
-| TEMP TipTap test page
-|--------------------------------------------------------------------------
-*/
-Route::get('/tiptap-test', function () {
-    return view('tiptap-test');
-})->name('tiptap.test');
-
-/*
-|--------------------------------------------------------------------------
-| DEV-ONLY: zero-auth smoke tests for cURL (no auth / no CSRF)
-|--------------------------------------------------------------------------
-*/
-if (app()->environment('local') || env('ALLOW_DEV_ROUTES', false)) {
-    Route::prefix('api/tok/test')
-        ->withoutMiddleware([FrameworkVerifyCsrf::class])
-        ->group(function () {
-            Route::get('/docs/{owner_type}/{owner_id}', [RichTextController::class, 'show'])
-                ->where(['owner_type' => '[A-Za-z_-]+', 'owner_id' => '[0-9]+']);
-
-            Route::patch('/docs/{owner_type}/{owner_id}', [RichTextController::class, 'autosave'])
-                ->where(['owner_type' => '[A-Za-z_-]+', 'owner_id' => '[0-9]+']);
-
-            Route::post('/docs/{owner_type}/{owner_id}/commit', [RichTextController::class, 'commit'])
-                ->where(['owner_type' => '[A-Za-z_-]+', 'owner_id' => '[0-9]+']);
-        });
-}

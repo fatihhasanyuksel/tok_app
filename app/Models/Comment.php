@@ -44,12 +44,6 @@ class Comment extends Model
         return $this->belongsTo(User::class, 'author_id');
     }
 
-    // The single anchor for this thread (one active anchor per thread)
-    public function anchor(): HasOne
-    {
-        return $this->hasOne(CommentAnchor::class);
-    }
-
     // Messages in this thread (ordered oldest → newest)
     public function messages(): HasMany
     {

@@ -20,12 +20,6 @@ class Student extends Model
         'parent_phone',
     ];
 
-    /** A student can have many reflections. */
-    public function reflections()
-    {
-        return $this->hasMany(\App\Models\Reflection::class);
-    }
-
     /** Each student belongs to one teacher. */
     public function teacher()
     {

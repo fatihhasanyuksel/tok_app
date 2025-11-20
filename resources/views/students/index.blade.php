@@ -21,48 +21,150 @@
       /* Base table */
       table { width: 100%; border-collapse: collapse; margin-top: 10px; }
       th, td { padding: 8px 10px; border-bottom: 2px solid #eee; text-align: left; font-size: 14px; }
-      th { font-weight: 600; background: #fafafa; white-space: nowrap; } /* don't wrap headers */
+      th { font-weight: 600; background: #fafafa; white-space: nowrap; }
       tr:hover td { background: #f9f9f9; }
       .t-name { font-weight: 600; }
       .actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
       .muted { color: #777; font-size: 13px; }
 
-      /* Make long emails behave */
-      td:nth-child(2), /* Student Email */
-      td:nth-child(4)  /* Parent Email */{
+      td:nth-child(2),
+      td:nth-child(4) {
         max-width: 300px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
 
+      select.checkpoint-stage{
+        width: 160px;
+        max-width: 100%;
+        min-width: 0;
+        padding: 3px 6px;
+        box-sizing: border-box;
+      }
 
-/* Stage selects: stable width across rows & reloads */
-select.checkpoint-stage{
-  width: 160px;        /* fixed width prevents content-based expansion */
-  max-width: 100%;
-  min-width: 0;        /* override any UA minimums */
-  padding: 3px 6px;
-  box-sizing: border-box;
-}
-
-      /* Horizontal scroll on narrow viewports */
       .table-wrap{
         overflow-x: auto;
       }
 
-     /* Subtle border emphasis + transition for the colored borders */
-.btn.status-border {
-  border: 2px solid #BDBDBD;  /* fallback; inline border-color still overrides this */
-  border-radius: 6px;         /* new: rounded corners to match other buttons */
-  color: #222 !important;
-  transition: border-color 140ms ease-in;
-  
-  /* NEW: inner spacing */
-  padding: 3px 6px;            /* vertical | horizontal */
-  text-decoration: none;        /* ensures clean text edges */
-  display: inline-block;        /* keeps correct box sizing */
-}
+      .btn.status-border {
+        border: 2px solid #BDBDBD;
+        border-radius: 6px;
+        color: #222 !important;
+        transition: border-color 140ms ease-in;
+        padding: 3px 6px;
+        text-decoration: none;
+        display: inline-block;
+        background: #fff;
+      }
+
+      .insights-row {
+        background: #f9fafb;
+      }
+
+      .insights-cell {
+        padding: 12px 10px;
+        border-bottom: 2px solid #eee;
+      }
+
+      /* --- Progress + metrics styles (shared partial) --- */
+      .progress-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        margin-top: 8px;
+      }
+
+      .progress-line {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .progress-label {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 13px;
+        color: #374151;
+      }
+
+      .stage-pill {
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        background: rgba(59,130,246,0.1);
+        color: #1d4ed8;
+      }
+
+      .stage-pill-secondary {
+        background: rgba(16,185,129,0.1);
+        color: #047857;
+      }
+
+      .progress-track {
+        position: relative;
+        width: 100%;
+        height: 10px;
+        border-radius: 999px;
+        background: #f3f4f6;
+        overflow: hidden;
+      }
+
+      .progress-fill {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 0%;
+        border-radius: 999px;
+        background: linear-gradient(90deg,#0b6bd6,#60a5fa);
+        transition: width 0.25s ease-out;
+      }
+
+      .progress-fill-secondary {
+        background: linear-gradient(90deg,#059669,#22c55e);
+      }
+
+      .workspace-links {
+        margin-top: 16px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .workspace-link-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        border: 1px solid #0b6bd6;
+        color: #0b6bd6;
+        background: #eff6ff;
+        text-decoration: none;
+      }
+
+      .workspace-link-btn:hover {
+        background: #dbeafe;
+      }
+
+      .workspace-link-btn-secondary {
+        border-color: #059669;
+        color: #047857;
+        background: #ecfdf5;
+      }
+
+      .workspace-link-btn-secondary:hover {
+        background: #d1fae5;
+      }
+
+      .insights-card .workspace-links {
+        display: none;
+      }
     </style>
 
     @php
@@ -80,7 +182,16 @@ select.checkpoint-stage{
         'final'         => '#8BC34A', // light green
         'approved'      => '#2ECC71', // bright green
       ];
-      $defaultBorder = '#BDBDBD'; // gray for unknown / none
+      $defaultBorder = '#BDBDBD';
+
+      $statusLabels = [
+        'no_submission' => 'No submission',
+        'draft_1'       => 'Draft 1',
+        'draft_2'       => 'Draft 2',
+        'draft_3'       => 'Draft 3',
+        'final'         => 'Final',
+        'approved'      => 'Approved',
+      ];
     @endphp
 
     <div class="table-wrap">
@@ -94,21 +205,20 @@ select.checkpoint-stage{
             <th style="width:12%">Parent Phone</th>
             <th style="width:13%">Exhibition Progress</th>
             <th style="width:13%">Essay Progress</th>
-            <th style="width:10%; text-align:right">Workspaces</th>
+            <th style="width:12%; text-align:right">Workspaces</th>
           </tr>
         </thead>
         <tbody>
           @foreach($students as $s)
             @php
-              $uid   = \DB::table('users')->where('email', $s->email)->value('id');
+              // Use pre-resolved user IDs from controller (no DB call here)
+              $uid   = $studentUserIds[$s->id] ?? null;
               $name  = trim(($s->first_name ?? '').' '.($s->last_name ?? '')) ?: ($s->email ?? '—');
 
-              // Optional “current” values (if your controller still provides $statuses)
               $byStudent = $statusesSafe->get($s->id, collect());
-              $exhLegacy = optional($byStudent->firstWhere('work_type','exhibition')); // legacy shape
+              $exhLegacy = optional($byStudent->firstWhere('work_type','exhibition'));
               $esyLegacy = optional($byStudent->firstWhere('work_type','essay'));
 
-              // Try multiple sources to determine current status codes:
               $exhFromMeta = $statusMeta[$s->id]['exhibition']['status_code'] ?? null;
               $esyFromMeta = $statusMeta[$s->id]['essay']['status_code']      ?? null;
 
@@ -126,11 +236,14 @@ select.checkpoint-stage{
               $exhBorder = $statusBorder[$exhCode] ?? $defaultBorder;
               $esyBorder = $statusBorder[$esyCode] ?? $defaultBorder;
 
-              // “Updated … by …” line support
               $exhMeta = $statusMeta[$s->id]['exhibition'] ?? null;
               $esyMeta = $statusMeta[$s->id]['essay']      ?? null;
+
+              $exhLabel = $statusLabels[$exhCode] ?? 'No submission';
+              $esyLabel = $statusLabels[$esyCode] ?? 'No submission';
             @endphp
 
+            {{-- Main student row --}}
             <tr>
               <td class="t-name">{{ $name }}</td>
               <td title="{{ $s->email }}">{{ $s->email ?? '—' }}</td>
@@ -164,7 +277,7 @@ select.checkpoint-stage{
                 ])
               </td>
 
-              {{-- Workspace links with colored borders --}}
+              {{-- Workspace links + Insights toggle --}}
               <td style="text-align:right">
                 <div class="actions">
                   @if ($uid)
@@ -187,7 +300,44 @@ select.checkpoint-stage{
                   @else
                     <span class="muted">No account</span>
                   @endif
+
+                  <button
+                    type="button"
+                    class="btn status-border insights-toggle"
+                    data-student-id="{{ $s->id }}"
+                    style="border-color:#6b7280;"
+                  >
+                    Insights
+                  </button>
                 </div>
+              </td>
+            </tr>
+
+            {{-- Accordion row for student insights (shared metrics partial) --}}
+            <tr
+              id="insights-row-{{ $s->id }}"
+              class="insights-row"
+              style="display:none;"
+            >
+              <td colspan="8" class="insights-cell">
+                @php
+                  $bundle = $metricsByStudent[$s->id] ?? null;
+                @endphp
+
+                @if($bundle && $bundle['selectedStudent'])
+                  <div class="insights-card">
+                    @include('partials.student_metrics', [
+                        'selectedStudent' => $bundle['selectedStudent'],
+                        'progress'        => $bundle['progress'],
+                        'studentMetrics'  => $bundle['studentMetrics'],
+                        'selectedUserId'  => $bundle['selectedUserId'],
+                        'emptyMessage'    => 'This student has no Exhibition or Essay submissions yet.',
+                        'showWorkspaces'  => false,
+                    ])
+                  </div>
+                @else
+                  <p class="muted">No data available for this student yet.</p>
+                @endif
               </td>
             </tr>
           @endforeach
@@ -198,6 +348,25 @@ select.checkpoint-stage{
     <div style="margin-top:12px">
       {{ $students->links() }}
     </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        const toggles = document.querySelectorAll('.insights-toggle');
+
+        toggles.forEach(btn => {
+          btn.addEventListener('click', function () {
+            const id  = this.dataset.studentId;
+            const row = document.getElementById('insights-row-' + id);
+            if (!row) return;
+
+            const isHidden = (row.style.display === 'none' || row.style.display === '');
+            row.style.display = isHidden ? 'table-row' : 'none';
+
+            this.textContent = isHidden ? 'Hide insights' : 'Insights';
+          });
+        });
+      });
+    </script>
 
   @else
     <p>No students yet. <a href="{{ route('students.create') }}">Add the first one</a>.</p>
