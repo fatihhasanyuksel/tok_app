@@ -1,7 +1,7 @@
 @extends('layout')
 
 @section('body')
-<h2>Edit Teacher</h2>
+<h2>Add Teacher</h2>
 
 <style>
   .form {max-width:720px}
@@ -14,55 +14,42 @@
   .hint{display:block;color:#666;font-size:12px;margin-top:4px}
 </style>
 
-<form class="form" method="POST" action="{{ route('admin.teachers.update', $teacher) }}">
+<form class="form" method="POST" action="{{ route('admin.teachers.store') }}">
   @csrf
-  @method('PUT')
 
   <div class="row">
     <label class="label" for="name">Full name</label>
-    <input id="name" name="name" class="field" value="{{ old('name', $teacher->name) }}" required>
+    <input id="name" name="name" class="field" value="{{ old('name') }}" required>
     @error('name') <div class="error">{{ $message }}</div> @enderror
   </div>
 
   <div class="row">
     <label class="label" for="email">Email</label>
-    <input id="email" type="email" name="email" class="field" value="{{ old('email', $teacher->email) }}" required>
+    <input id="email" type="email" name="email" class="field" value="{{ old('email') }}" required>
     @error('email') <div class="error">{{ $message }}</div> @enderror
   </div>
 
   <div class="row">
-    <label class="label" for="password">New password (optional)</label>
-    <input id="password" type="password" name="password" class="field" placeholder="Leave blank to keep current">
-    <small class="hint">Leave empty to keep the current password.</small>
+    <label class="label" for="password">Password</label>
+    <input id="password" type="password" name="password" class="field" placeholder="Min 8 characters" required>
+    <small class="hint">Choose a temporary password; they can change it later.</small>
     @error('password') <div class="error">{{ $message }}</div> @enderror
   </div>
 
-  <div class="row" aria-label="Status and role">
+  <div class="row" aria-label="Status">
     {{-- Active --}}
     <span class="capsule">
       <input type="hidden" name="active" value="0">
-      <input id="active" type="checkbox" name="active" value="1"
-             {{ old('active', (int)$teacher->active) ? 'checked' : '' }}>
+      <input id="active" type="checkbox" name="active" value="1" {{ old('active') ? 'checked' : '' }}>
       <label for="active" style="margin:0;cursor:pointer;">
         <strong>Active</strong>
         <span class="hint">Can sign in</span>
       </label>
     </span>
-
-    {{-- Admin --}}
-    <span class="capsule">
-      <input type="hidden" name="is_admin" value="0">
-      <input id="is_admin" type="checkbox" name="is_admin" value="1"
-             {{ old('is_admin', (int)$teacher->is_admin) ? 'checked' : '' }}>
-      <label for="is_admin" style="margin:0;cursor:pointer;">
-        <strong>Admin</strong>
-        <span class="hint">Access to admin pages</span>
-      </label>
-    </span>
   </div>
 
   <div class="actions">
-    <button class="btn" type="submit">Update</button>
+    <button class="btn" type="submit">Save</button>
     <a class="btn btn-danger" href="{{ route('admin.teachers.index') }}">Cancel</a>
   </div>
 </form>

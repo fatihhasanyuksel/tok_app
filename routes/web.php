@@ -1,21 +1,17 @@
 <?php
-
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
-
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken as FrameworkVerifyCsrf;
-
 use App\Http\Middleware\EnsureRole;
-
 use App\Models\Teacher;
-
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Admin\TeacherController as AdminTeacherController;
 use App\Http\Controllers\Admin\StudentController as AdminStudentController;
+use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\ThreadController;
 use App\Http\Controllers\ResourcesController;
@@ -192,19 +188,27 @@ Route::middleware(['web', EnsureRole::class . ':admin'])->group(function () {
 
     Route::post('admin/students/{student}/reset-password', [AdminStudentController::class, 'resetPassword'])
         ->name('admin.students.reset');
+    
+    Route::resource('admin/admins', AdminUserController::class)
+        ->except(['show'])
+        ->names('admin.admins');
+
+    Route::post('admin/admins/{admin}/reset-password', [AdminUserController::class, 'resetPassword'])
+        ->name('admin.admins.reset');
+
+    // ✅ NEW: Manage Admin accounts (pure admins from users table)
+    Route::resource('admin/admins', AdminUserController::class)
+        ->except(['show'])
+        ->names('admin.admins');
+
+    Route::post('admin/admins/{admin}/reset-password', [AdminUserController::class, 'resetPassword'])
+        ->name('admin.admins.reset');
 
     // ✅ Admin: Checkpoint Stages Manager
     Route::prefix('admin/checkpoints/stages')
         ->name('admin.stages.')
         ->group(function () {
-            Route::get('/',            [CheckpointStageController::class, 'index'])->name('index');
-            Route::post('/',           [CheckpointStageController::class, 'store'])->name('store');
-            Route::patch('/{stage}',   [CheckpointStageController::class, 'update'])->name('update');
-            Route::delete('/{stage}',  [CheckpointStageController::class, 'destroy'])->name('destroy');
-
-            // helpers
-            Route::post('/{stage}/toggle',  [CheckpointStageController::class, 'toggle'])->name('toggle');
-            Route::post('/reorder',         [CheckpointStageController::class, 'reorder'])->name('reorder');
+            // ...
         });
 });
 

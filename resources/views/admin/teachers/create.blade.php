@@ -36,7 +36,7 @@
     @error('password') <div class="error">{{ $message }}</div> @enderror
   </div>
 
-  <div class="row" aria-label="Status and role">
+  <div class="row" aria-label="Status">
     {{-- Active --}}
     <span class="capsule">
       <input type="hidden" name="active" value="0">
@@ -44,16 +44,6 @@
       <label for="active" style="margin:0;cursor:pointer;">
         <strong>Active</strong>
         <span class="hint">Can sign in</span>
-      </label>
-    </span>
-
-    {{-- Admin --}}
-    <span class="capsule">
-      <input type="hidden" name="is_admin" value="0">
-      <input id="is_admin" type="checkbox" name="is_admin" value="1" {{ old('is_admin') ? 'checked' : '' }}>
-      <label for="is_admin" style="margin:0;cursor:pointer;">
-        <strong>Admin</strong>
-        <span class="hint">Access to admin pages</span>
       </label>
     </span>
   </div>

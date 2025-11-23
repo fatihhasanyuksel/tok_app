@@ -69,19 +69,23 @@ class AuthController extends Controller
             }
         }
 
-        // 1) Primary path: users table
+        // 1) Primary path: users table (students, teachers, *pure* admins)
         if (Auth::attempt(['email' => $email, 'password' => $plain, 'role' => $roleWant], $remember)) {
             $request->session()->regenerate();
             return $this->redirectByRole($roleWant, $go)
                 ->with('ok', 'Welcome, ' . (Auth::user()->name ?? ''));
         }
 
-        // 2) Legacy teachers fallback (only for teacher/admin roles)
-        if (in_array($roleWant, ['teacher', 'admin'], true)) {
+        // 2) Legacy teachers fallback — *teacher role only*
+        //
+        // This is the important change for "pure admin" support:
+        //  - We no longer log in as admin via the teachers table.
+        //  - Admin accounts must exist in users.role = 'admin'.
+        if ($roleWant === 'teacher') {
             $teacher = Teacher::where('email', $email)->first();
 
             // Verify against legacy teacher table hash
-            if ($teacher && Hash::check($plain, $teacher->password)) {
+            if ($teacher && $teacher->password && Hash::check($plain, $teacher->password)) {
                 // Ensure a users row exists AND has a password
                 $user = User::where('email', $teacher->email)->first();
 
@@ -98,14 +102,14 @@ class AuthController extends Controller
                     $user = User::create([
                         'email'    => $teacher->email,
                         'name'     => $teacher->name ?? 'Teacher',
-                        'role'     => $roleWant,
+                        'role'     => 'teacher',          // force teacher role here
                         'password' => Hash::make($plain),
                     ]);
                 } else {
                     $dirty = false;
 
                     if (empty($user->role)) {
-                        $user->role = $roleWant;
+                        $user->role = 'teacher';
                         $dirty = true;
                     }
                     if (empty($user->password)) {
@@ -121,7 +125,7 @@ class AuthController extends Controller
                 Auth::login($user, $remember);
                 $request->session()->regenerate();
 
-                return $this->redirectByRole($roleWant, $go)
+                return $this->redirectByRole('teacher', $go)
                     ->with('ok', 'Welcome, ' . ($teacher->name ?? ''));
             }
         }

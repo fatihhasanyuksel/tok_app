@@ -24,91 +24,98 @@ class FeedbackController extends Controller
      * GET /workspace/{type}
      * Renders the two-pane workspace and populates the right-pane thread list.
      */
-    public function workspace(Request $request, string $type)
-    {
-        abort_unless(in_array($type, self::TYPES, true), 404);
+public function workspace(Request $request, string $type)
+{
+    abort_unless(in_array($type, self::TYPES, true), 404);
 
-        $viewer = Auth::user();
-        if (!$viewer) return redirect('/login');
+    $viewer = Auth::user();
+    if (!$viewer) return redirect('/login');
 
-        // Whose workspace?
-        if (strtolower((string) $viewer->role) === 'student') {
-            $student = $viewer;
-        } else {
-            $sid = (int) $request->query('student', 0);
-            $student = $sid > 0
-                ? User::where('id', $sid)->where('role', 'student')->first()
-                : null;
-            $student = $student ?: $viewer; // fallback
-        }
+    $role      = strtolower((string) ($viewer->role ?? ''));
+    $isStudent = ($role === 'student');
+    $isStaff   = in_array($role, ['teacher', 'admin'], true);
 
-        // Ensure submission exists for this student+type
-        $submission = Submission::firstOrCreate(
-            ['student_id' => $student->id, 'type' => $type],
-            ['status' => 'draft']
-        );
+    // Whose workspace?
+    if ($isStudent) {
+        // Students always see their own workspace
+        $student = $viewer;
+    } else {
+        // Teachers / admins must explicitly choose a student (?student=ID)
+        $sid = (int) $request->query('student', 0);
+        $student = $sid > 0
+            ? User::where('id', $sid)->where('role', 'student')->first()
+            : null;
 
-// Ensure a latest version exists (for threads/history panels)
-$latestVersion = $submission->latestVersion()->first();
-if (!$latestVersion) {
-    $latestVersion = Version::create([
-        'submission_id' => $submission->id,
-        'body_html'     => '<p><em>Start writing…</em></p>',
-        'files_json'    => [],
-        'created_by'    => $viewer->id ?? null,
-    ]);
-}
-        
-// Determine initial HTML for hydration — always use rich HTML
-$initialHtml = (string) ($latestVersion->body_html ?? '<p><em>Start writing…</em></p>');
-
-        // Build thread list for the right pane (eager-load what the UI needs)
-        $threads = \App\Models\Comment::whereHas('version', function ($q) use ($submission) {
-                $q->where('submission_id', $submission->id);
-            })
-            ->with([
-                'author:id,name',
-                // Avoid ambiguous columns in latestOfMany join
-                'latestMessage' => function ($q) {
-                    $q->select('comment_messages.*');
-                },
-                'version.submission:id,student_id',
-            ])
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        // Optional: latest general message shown above editor
-        $general = GeneralComment::where('version_id', $latestVersion->id)
-            ->with('author:id,name')
-            ->latest()
-            ->first();
-
-        // Match via students.email -> teacher_id -> teachers.name
-        $studentEmail   = data_get($student, 'email');
-        $teacherId      = DB::table('students')->where('email', $studentEmail)->value('teacher_id');
-        $supervisorLabel = $teacherId
-            ? (DB::table('teachers')->where('id', $teacherId)->value('name') ?? 'Unassigned')
-            : 'Unassigned';
-
-// --- Choose workspace view: default to V3, allow V2 only if flag + query param ---
-$allowV2 = filter_var(env('WORKSPACE_ALLOW_V2', false), FILTER_VALIDATE_BOOLEAN);
-$useV2   = $allowV2 && $request->boolean('v2');
-
-$data = [
-    'type'            => $type,
-    'student'         => $student,
-    'submission'      => $submission,
-    'latestVersion'   => $latestVersion,
-    'thread'          => null,
-    'threads'         => $threads,
-    'general'         => $general,
-    'supervisorLabel' => $supervisorLabel,
-    'initialHtml'     => $initialHtml,
-    'role'            => strtolower((string) ($viewer->role ?? Auth::user()->role ?? 'guest')),
-];
-
-return view($useV2 ? 'workspace' : 'workspace_v3', $data);
+        // No fallback to $viewer here – avoids creating submissions for staff
+        abort_unless($student, 404);
     }
+
+    // Ensure submission exists for this student+type
+    $submission = Submission::firstOrCreate(
+        ['student_id' => $student->id, 'type' => $type],
+        ['status' => 'draft']
+    );
+
+    // Ensure a latest version exists (for threads/history panels)
+    $latestVersion = $submission->latestVersion()->first();
+    if (!$latestVersion) {
+        $latestVersion = Version::create([
+            'submission_id' => $submission->id,
+            'body_html'     => '<p><em>Start writing…</em></p>',
+            'files_json'    => [],
+            'created_by'    => $viewer->id ?? null,
+        ]);
+    }
+
+    // Determine initial HTML for hydration — always use rich HTML
+    $initialHtml = (string) ($latestVersion->body_html ?? '<p><em>Start writing…</em></p>');
+
+    // Build thread list for the right pane (eager-load what the UI needs)
+    $threads = \App\Models\Comment::whereHas('version', function ($q) use ($submission) {
+            $q->where('submission_id', $submission->id);
+        })
+        ->with([
+            'author:id,name',
+            'latestMessage' => function ($q) {
+                $q->select('comment_messages.*');
+            },
+            'version.submission:id,student_id',
+        ])
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+    // Optional: latest general message shown above editor
+    $general = GeneralComment::where('version_id', $latestVersion->id)
+        ->with('author:id,name')
+        ->latest()
+        ->first();
+
+    // Match via students.email -> teacher_id -> teachers.name
+    $studentEmail    = data_get($student, 'email');
+    $teacherId       = DB::table('students')->where('email', $studentEmail)->value('teacher_id');
+    $supervisorLabel = $teacherId
+        ? (DB::table('teachers')->where('id', $teacherId)->value('name') ?? 'Unassigned')
+        : 'Unassigned';
+
+    // --- Choose workspace view: default to V3, allow V2 only if flag + query param ---
+    $allowV2 = filter_var(env('WORKSPACE_ALLOW_V2', false), FILTER_VALIDATE_BOOLEAN);
+    $useV2   = $allowV2 && $request->boolean('v2');
+
+    $data = [
+        'type'            => $type,
+        'student'         => $student,
+        'submission'      => $submission,
+        'latestVersion'   => $latestVersion,
+        'thread'          => null,
+        'threads'         => $threads,
+        'general'         => $general,
+        'supervisorLabel' => $supervisorLabel,
+        'initialHtml'     => $initialHtml,
+        'role'            => $role,
+    ];
+
+    return view($useV2 ? 'workspace' : 'workspace_v3', $data);
+}
 
     // inside app/Http/Controllers/FeedbackController.php
 
@@ -270,102 +277,113 @@ public function saveDraft(Request $request, string $type)
      * GET /workspace/{type}/history
      * Returns the list of version snapshots for the submission (JSON when requested).
      */
-    public function history(Request $request, string $type)
-    {
-        abort_unless(in_array($type, self::TYPES, true), 404);
+public function history(Request $request, string $type)
+{
+    abort_unless(in_array($type, self::TYPES, true), 404);
 
-        $viewer = Auth::user();
-        if (!$viewer) return redirect('/login');
+    $viewer = Auth::user();
+    if (!$viewer) return redirect('/login');
 
-        // Same resolution logic as workspace
-        if (strtolower((string) $viewer->role) === 'student') {
-            $student = $viewer;
-        } else {
-            $sid = (int) $request->query('student', 0);
-            $student = $sid > 0
-                ? User::where('id', $sid)->where('role', 'student')->first()
-                : null;
-            $student = $student ?: $viewer;
-        }
+    $role      = strtolower((string) ($viewer->role ?? ''));
+    $isStudent = ($role === 'student');
+    $isStaff   = in_array($role, ['teacher', 'admin'], true);
 
-        $submission = Submission::firstOrCreate(
-            ['student_id' => $student->id, 'type' => $type],
-            ['status' => 'draft']
-        );
+    // Same resolution logic as workspace
+    if ($isStudent) {
+        $student = $viewer;
+    } else {
+        $sid = (int) $request->query('student', 0);
+        $student = $sid > 0
+            ? User::where('id', $sid)->where('role', 'student')->first()
+            : null;
 
-$versions = Version::where('submission_id', $submission->id)
-    ->with('author:id,name,role')          // 👈 include who created the version
-    ->orderBy('created_at','desc')
-    ->get()
-    ->map(function ($v) {
-        $plain   = strip_tags((string)($v->body_html ?? ''));
-        $summary = mb_substr(trim(preg_replace('/\s+/', ' ', $plain)), 0, 120);
+        // Staff must always be looking at a real student
+        abort_unless($student, 404);
+    }
 
-        return [
-            'id'               => $v->id,
-            'created_at'       => $v->created_at,
-            'created_at_human' => optional($v->created_at)->diffForHumans(),
-            'created_at_full'  => optional($v->created_at)->format('Y-m-d H:i'),
-            'body_html'        => $v->body_html,
-            'summary'          => $summary,
-            'by_role'          => strtolower(optional($v->author)->role ?? 'student'),
-            'by_name'          => (string) (optional($v->author)->name ?? 'Student'),
-        ];
-    });
+    $submission = Submission::firstOrCreate(
+        ['student_id' => $student->id, 'type' => $type],
+        ['status' => 'draft']
+    );
 
-if ($request->wantsJson()) {
-    return response()->json(['ok' => true, 'versions' => $versions]);
-}
+    $versions = Version::where('submission_id', $submission->id)
+        ->with('author:id,name,role')
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(function ($v) {
+            $plain   = strip_tags((string)($v->body_html ?? ''));
+            $summary = mb_substr(trim(preg_replace('/\s+/', ' ', $plain)), 0, 120);
 
-        // Non-JSON fallback
+            return [
+                'id'               => $v->id,
+                'created_at'       => $v->created_at,
+                'created_at_human' => optional($v->created_at)->diffForHumans(),
+                'created_at_full'  => optional($v->created_at)->format('Y-m-d H:i'),
+                'body_html'        => $v->body_html,
+                'summary'          => $summary,
+                'by_role'          => strtolower(optional($v->author)->role ?? 'student'),
+                'by_name'          => (string) (optional($v->author)->name ?? 'Student'),
+            ];
+        });
+
+    if ($request->wantsJson()) {
         return response()->json(['ok' => true, 'versions' => $versions]);
     }
+
+    // Non-JSON fallback
+    return response()->json(['ok' => true, 'versions' => $versions]);
+}
 
     /**
      * POST /workspace/{type}/restore/{version}
      * Restores the selected snapshot into the editor (updates working_* mirrors).
      */
-    public function restore(Request $request, string $type, int $version)
-    {
-        abort_unless(in_array($type, self::TYPES, true), 404);
+public function restore(Request $request, string $type, int $version)
+{
+    abort_unless(in_array($type, self::TYPES, true), 404);
 
-        $viewer = Auth::user();
-        if (!$viewer) return redirect('/login');
+    $viewer = Auth::user();
+    if (!$viewer) return redirect('/login');
 
-        // Resolve student same as before
-        if (strtolower((string) $viewer->role) === 'student') {
-            $student = $viewer;
-        } else {
-            $sid = (int) $request->query('student', 0);
-            $student = $sid > 0
-                ? User::where('id', $sid)->where('role', 'student')->first()
-                : null;
-            $student = $student ?: $viewer;
-        }
+    $role      = strtolower((string) ($viewer->role ?? ''));
+    $isStudent = ($role === 'student');
+    $isStaff   = in_array($role, ['teacher', 'admin'], true);
 
-        $submission = Submission::firstOrCreate(
-            ['student_id' => $student->id, 'type' => $type],
-            ['status' => 'draft']
-        );
+    // Resolve student same as before
+    if ($isStudent) {
+        $student = $viewer;
+    } else {
+        $sid = (int) $request->query('student', 0);
+        $student = $sid > 0
+            ? User::where('id', $sid)->where('role', 'student')->first()
+            : null;
 
-        $v = Version::where('submission_id', $submission->id)
-            ->where('id', $version)
-            ->firstOrFail();
-
-        $plain = $this->htmlToPlain($v->body_html ?? '');
-
-        // Update both mirrors so the editor rehydrates with formatting/images
-        $submission->working_body = $plain;
-        $submission->working_html = $v->body_html ?? '';
-        $submission->save();
-
-        return response()->json([
-            'ok'         => true,
-            'version_id' => $v->id,
-            'body_html'  => $v->body_html,   // TipTap will use this to rehydrate with images
-            'body_plain' => $plain,          // Hidden textarea mirror
-        ]);
+        abort_unless($student, 404);
     }
+
+    $submission = Submission::firstOrCreate(
+        ['student_id' => $student->id, 'type' => $type],
+        ['status' => 'draft']
+    );
+
+    $v = Version::where('submission_id', $submission->id)
+        ->where('id', $version)
+        ->firstOrFail();
+
+    $plain = $this->htmlToPlain($v->body_html ?? '');
+
+    // Update both mirrors so the editor rehydrates with formatting/images
+    $submission->working_body = $plain;
+    $submission->working_html = $v->body_html ?? '';
+    $submission->save();
+
+    return response()->json([
+        'ok'         => true,
+        'version_id' => $v->id,
+        'body_html'  => $v->body_html,
+        'body_plain' => $plain,
+    ]);
+}
 
     /**
      * GET /workspace/{type}/export

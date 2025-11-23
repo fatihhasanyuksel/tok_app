@@ -1,0 +1,147 @@
+/* --- HEADER STYLES --- */
+.tok-ls-header {
+    /* Use padding to create space around content */
+    padding: 14px 40px; 
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #ffffff; 
+    border-bottom: 1px solid #e5e7eb;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.tok-ls-logo-text {
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    font-size: 1rem;
+    text-transform: uppercase;
+    color: #3b82f6; 
+}
+
+/* --- BREADCRUMB STYLES --- */
+.tok-ls-breadcrumb {
+    font-size: 0.9rem;
+    color: #6b7280;
+}
+
+.tok-ls-breadcrumb a {
+    color: #3b82f6;
+    text-decoration: none;
+}
+
+.tok-ls-breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.tok-ls-breadcrumb-separator {
+    margin: 0 0.5rem;
+    color: #9ca3af;
+}
+
+/* GENERAL STYLES & CORE LAYOUT (Your working code starts here) */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f7f9fb;
+    color: #1f2937;
+    margin: 0;
+}
+
+/* MAIN CONTENT CONTAINER (Wider container is kept) */
+.tok-ls-container {
+    max-width: 1400px;
+    width: 90%;
+    margin: 32px auto 60px;
+    padding: 0;
+}
+
+/* SECTION CARD STYLES (Padding is kept wide for wrapping) */
+.tok-ls-section {
+    background-color: #ffffff;
+    border-radius: 16px;
+    padding: 30px 40px 40px; 
+    margin-bottom: 24px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e5e7eb;
+}
+
+.tok-ls-section h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+/* 🛠️ FIX 1: Restore Section Header Alignment */
+.tok-ls-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* Reduced top margin for the h2/link line */
+    margin-bottom: 20px; 
+}
+
+/* Link-style actions */
+.tok-ls-link-action {
+    font-size: 0.9rem;
+    color: #5b21b6; /* Adjusted to a purple/indigo that matches the screenshot */
+    text-decoration: none;
+    font-weight: 500;
+}
+.tok-ls-link-action:hover {
+    text-decoration: underline;
+}
+
+/* --- LESSONS Grid Styling --- */
+.tok-ls-lesson-grid {
+    display: grid;
+    /* 🔑 KEY CHANGE: Reduced minimum width from 280px to 240px. */
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 24px;
+    margin-top: 0;
+}
+
+/* LESSON CARD Styles */
+.tok-ls-lesson-card {
+    display: flex;
+    flex-direction: column;
+    /* 🛠️ FIX 2: REMOVE height: 100%; to restore the smaller, compact size */
+    
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 20px;
+    text-decoration: none;
+    color: inherit;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tok-ls-lesson-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border-color: #5b21b6; /* Adjusted hover border color */
+}
+
+/* Typography remains the same */
+.tok-ls-lesson-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 10px;
+    line-height: 1.4;
+    color: #1f2937;
+}
+
+.tok-ls-lesson-meta {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin: 4px 0;
+}
+
+.tok-ls-lesson-meta strong {
+    color: #1f2937;
+}
+
+/* Student and Media Query styles remain the same */
+/* Note: You may need to add a media query for mobile header padding if the header looks too wide on small screens. */
+/* ... */

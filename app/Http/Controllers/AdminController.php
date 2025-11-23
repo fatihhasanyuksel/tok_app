@@ -7,6 +7,7 @@ use App\Models\Teacher;
 use App\Models\Student;
 use App\Models\User;
 use App\Services\StudentMetrics;
+use App\Services\TeacherMetrics;
 
 class AdminController extends Controller
 {
@@ -58,12 +59,18 @@ class AdminController extends Controller
         // Override selectedUserId in the bundle with the controller’s resolved value
         $bundle['selectedUserId'] = $selectedUserId;
 
+        // Global teacher metrics (pulled from shared service)
+        /** @var \App\Services\TeacherMetrics $teacherMetricsService */
+        $teacherMetricsService = app(TeacherMetrics::class);
+        $teacherMetrics        = $teacherMetricsService->getGlobalMetrics();
+
         return view('admin.dashboard', [
             'students'        => $students,
             'selectedStudent' => $bundle['selectedStudent'],
             'progress'        => $bundle['progress'],
             'studentMetrics'  => $bundle['studentMetrics'],
             'selectedUserId'  => $bundle['selectedUserId'],
+            'teacherMetrics'  => $teacherMetrics,
         ]);
     }
 
