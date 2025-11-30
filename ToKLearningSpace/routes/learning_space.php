@@ -6,6 +6,9 @@ use ToKLearningSpace\Http\Controllers\Student\ClassController as StudentClassCon
 use ToKLearningSpace\Http\Controllers\Student\LessonResponseController;
 use ToKLearningSpace\Http\Controllers\Teacher\ClassController;
 use ToKLearningSpace\Http\Controllers\Teacher\LessonController;
+use ToKLearningSpace\Http\Controllers\Teacher\LessonImageUploadController;
+use ToKLearningSpace\Http\Controllers\Teacher\TemplateController;
+use ToKLearningSpace\Http\Controllers\Teacher\TemplateImageUploadController; // ⭐ NEW
 
 // -------------------------
 // Student routes
@@ -58,8 +61,10 @@ Route::middleware(['web', 'auth'])->group(function () {
     // Classes
     // -------------------------
 
-    Route::get('/teacher/learning-space', [ClassController::class, 'index'])
-        ->name('tok-ls.teacher.classes');
+    Route::get(
+        '/teacher/learning-space',
+        [ClassController::class, 'index']
+    )->name('tok-ls.teacher.classes');
 
     Route::get(
         '/teacher/learning-space/classes/create',
@@ -81,6 +86,24 @@ Route::middleware(['web', 'auth'])->group(function () {
         [ClassController::class, 'destroy']
     )->name('tok-ls.teacher.classes.destroy');
 
+    // ⭐ archive (soft hide) class
+    Route::post(
+        '/teacher/learning-space/classes/{class}/archive',
+        [ClassController::class, 'archive']
+    )->name('tok-ls.teacher.classes.archive');
+
+    // ⭐ NEW: unarchive class
+    Route::post(
+        '/teacher/learning-space/classes/{class}/unarchive',
+        [ClassController::class, 'unarchive']
+    )->name('tok-ls.teacher.classes.unarchive');
+
+    // ⭐ view archived classes list
+    Route::get(
+        '/teacher/learning-space/classes-archived',
+        [ClassController::class, 'archived']
+    )->name('tok-ls.teacher.classes.archived');
+
     Route::get(
         '/teacher/learning-space/classes/{class}/students/add',
         [ClassController::class, 'addStudents']
@@ -98,7 +121,7 @@ Route::middleware(['web', 'auth'])->group(function () {
 
 
     // -------------------------
-    // Lessons
+    // Lessons (per class)
     // -------------------------
 
     Route::get(
@@ -138,35 +161,81 @@ Route::middleware(['web', 'auth'])->group(function () {
 
 
     // ----------------------------------------------------
-    // ⭐⭐⭐  NEW: Show Feedback Page (GET)
+    // Lesson responses / feedback
     // ----------------------------------------------------
     Route::get(
         '/teacher/learning-space/classes/{class}/lessons/{lesson}/responses/{response}',
         [LessonController::class, 'showFeedback']
     )->name('tok-ls.teacher.lessons.responses.show');
 
-
-    // ----------------------------------------------------
-    // Save teacher feedback (POST)
-    // ----------------------------------------------------
+    // Save teacher feedback
     Route::post(
         '/teacher/learning-space/classes/{class}/lessons/{lesson}/responses/{response}/feedback',
         [LessonController::class, 'saveFeedback']
     )->name('tok-ls.teacher.lessons.responses.feedback');
 
-
-    // ----------------------------------------------------
-    // ⭐⭐⭐ NEW: AUTOSAVE teacher feedback (POST)
-    // ----------------------------------------------------
+    // AUTOSAVE teacher feedback (not implemented yet, but route kept as-is)
     Route::post(
         '/teacher/learning-space/classes/{class}/lessons/{lesson}/responses/{response}/autosave-feedback',
         [LessonController::class, 'autosaveFeedback']
     )->name('tok-ls.teacher.lessons.responses.autosave');
-
 
     // Publish/unpublish
     Route::post(
         '/teacher/learning-space/classes/{class}/lessons/{lesson}/toggle-publish',
         [LessonController::class, 'togglePublish']
     )->name('tok-ls.teacher.lessons.toggle-publish');
+
+    // Teacher image upload (class lessons)
+    Route::post(
+        '/teacher/learning-space/lesson-images/upload',
+        [LessonImageUploadController::class, 'store']
+    )->name('tok-ls.teacher.lesson-images.upload');
+
+    // ⭐ Teacher image upload (lesson templates in library)
+    Route::post(
+        '/teacher/learning-space/template-images/upload',
+        [TemplateImageUploadController::class, 'store']
+    )->name('tok-ls.teacher.template-images.upload');
+
+
+    // -------------------------
+    // Lesson Library (Templates)
+    // -------------------------
+
+    Route::get(
+        '/teacher/learning-space/templates',
+        [TemplateController::class, 'index']
+    )->name('tok-ls.teacher.templates.index');
+
+    Route::get(
+        '/teacher/learning-space/templates/create',
+        [TemplateController::class, 'create']
+    )->name('tok-ls.teacher.templates.create');
+
+    Route::post(
+        '/teacher/learning-space/templates',
+        [TemplateController::class, 'store']
+    )->name('tok-ls.teacher.templates.store');
+
+    Route::get(
+        '/teacher/learning-space/templates/{template}/edit',
+        [TemplateController::class, 'edit']
+    )->name('tok-ls.teacher.templates.edit');
+
+    Route::put(
+        '/teacher/learning-space/templates/{template}',
+        [TemplateController::class, 'update']
+    )->name('tok-ls.teacher.templates.update');
+
+    Route::delete(
+        '/teacher/learning-space/templates/{template}',
+        [TemplateController::class, 'destroy']
+    )->name('tok-ls.teacher.templates.destroy');
+
+    // Save an existing lesson as a template
+    Route::post(
+        '/teacher/learning-space/classes/{class}/lessons/{lesson}/save-as-template',
+        [TemplateController::class, 'storeFromLesson']
+    )->name('tok-ls.teacher.templates.store-from-lesson');
 });

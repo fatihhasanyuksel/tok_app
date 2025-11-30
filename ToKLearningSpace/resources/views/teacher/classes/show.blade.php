@@ -5,7 +5,7 @@
 @section('tok_ls_breadcrumb')
     {{-- This section is styled by the CSS to appear at the top of the page --}}
     <a href="{{ route('tok-ls.teacher.classes') }}">Classes</a>
-    <span class="tok-ls-breadcrumb-separator">›</span>
+    <span class="tok-ls-breadcrumb-separator">&gt;</span>
     <span>{{ $class->name }}</span>
 @endsection
 
@@ -17,7 +17,55 @@
         <p class="tok-ls-subtitle">
             Manage students, lessons, and view analytics.
         </p>
+
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+            {{-- Archive (soft hide) --}}
+            <form method="POST"
+                  action="{{ route('tok-ls.teacher.classes.archive', $class->id) }}"
+                  class="tok-ls-inline-form"
+                  onsubmit="return confirm('Archive this class? Students and lessons will be hidden but NOT deleted.');">
+                @csrf
+                <button type="submit"
+                        class="tok-ls-btn tok-ls-btn--tiny">
+                    Archive Class
+                </button>
+            </form>
+
+            {{-- Hard Delete (permanent) --}}
+            <form method="POST"
+                  action="{{ route('tok-ls.teacher.classes.destroy', $class->id) }}"
+                  class="tok-ls-inline-form"
+                  onsubmit="return confirm('Permanently delete this class and all its lessons/responses? This cannot be undone.');">
+                @csrf
+                @method('DELETE')
+                <button type="submit"
+                        class="tok-ls-btn tok-ls-btn--tiny"
+                        style="color:#ef4444;">
+                    Delete Class
+                </button>
+            </form>
+        </div>
     </div>
+
+    {{-- ARCHIVED BANNER (read-only indicator) --}}
+    @if ($class->isArchived())
+        <div style="
+            margin-top: 12px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            background: #fef3c7;
+            border: 1px solid #fbbf24;
+            color: #92400e;
+            font-size: 0.9rem;
+        ">
+            This class is currently <strong>archived</strong>. It is hidden from your main class list
+            and from students. You can still view its content here, or unarchive it from the
+            <a href="{{ route('tok-ls.teacher.classes.archived') }}" class="tok-ls-link-action">
+                Archived Classes
+            </a>
+            page.
+        </div>
+    @endif
 
     {{-- Students (single card) --}}
     <section class="tok-ls-section">
@@ -64,10 +112,19 @@
         <div class="tok-ls-section-header">
             <h2>Lessons / Units</h2>
 
-            <a href="{{ route('tok-ls.teacher.lessons.create', $class->id) }}"
-               class="tok-ls-link-action">
-                + Create Lesson
-            </a>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                {{-- Go to Lesson Library WITH class context --}}
+                <a href="{{ route('tok-ls.teacher.templates.index', ['class' => $class->id]) }}"
+                   class="tok-ls-link-action">
+                    Lesson Library
+                </a>
+
+                {{-- Create a new lesson in this class --}}
+                <a href="{{ route('tok-ls.teacher.lessons.create', $class->id) }}"
+                   class="tok-ls-link-action">
+                    + Create Lesson
+                </a>
+            </div>
         </div>
 
         @if ($lessons->isEmpty())

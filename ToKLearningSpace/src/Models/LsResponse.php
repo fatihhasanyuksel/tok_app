@@ -23,7 +23,7 @@ class LsResponse extends Model
 
     public function student()
     {
-        // Assuming your main User model is App\Models\User
+        // Main user model
         return $this->belongsTo(User::class, 'student_id');
     }
 }

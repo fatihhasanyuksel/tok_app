@@ -1,0 +1,275 @@
+/* ===========================
+   1. CORE VARIABLES & RESET
+   =========================== */
+:root {
+  --tok-blue: #0b6bd6;
+  --tok-blue-dark: #0753aa;
+  --tok-muted: #6b7280;
+  --tok-border: #e5e7eb;
+  --tok-bg-soft: #f9fafb;
+  --tok-text-main: #111827;
+  --tok-text-sub: #4b5563;
+}
+
+.tok-admin-shell {
+  max-width: 1100px;
+  margin: 0 auto 40px;
+  padding: 0 16px 40px;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: var(--tok-text-main);
+}
+
+/* ===========================
+   2. TYPOGRAPHY UTILITIES
+   =========================== */
+/* Titles */
+.admin-page-title { margin: 0 0 8px; font-size: 22px; font-weight: 700; }
+.card-header h3 { margin: 0; font-size: 15px; font-weight: 600; }
+
+/* Subtext & Meta */
+.admin-login-info { margin: 0 0 12px; font-size: 14px; color: #444; }
+.dash-sub, .overview-sub { font-size: 12px; color: var(--tok-muted); margin: 0; }
+.selector-hint, .metrics-empty { font-size: 11px; color: #9ca3af; }
+
+/* Labels (Uppercase & Small) */
+.overview-label, 
+.metric-label, 
+.teacher-list-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--tok-muted);
+  margin-bottom: 2px; /* metric-label uses 2px */
+}
+/* Specific adjustment for teacher list title spacing */
+.teacher-list-title { margin-bottom: 4px; }
+
+/* Values (Big & Bold) */
+.overview-value { font-size: 22px; font-weight: 700; color: var(--tok-text-main); }
+.metric-value { font-size: 15px; font-weight: 600; color: var(--tok-text-main); }
+
+/* Dividers */
+.admin-divider, .overview-divider {
+  border: none;
+  border-top: 1px solid var(--tok-border);
+}
+.admin-divider { margin: 20px 0 24px; }
+.overview-divider { margin: 14px 0; }
+
+/* ===========================
+   3. BUTTONS & NAV
+   =========================== */
+.admin-nav, .workspace-links, .selector-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-nav { margin-bottom: 12px; }
+.workspace-links { margin-top: 16px; }
+
+/* Shared Button Logic */
+.admin-nav .btn, 
+#student-view-btn,
+.workspace-link-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px; /* Pill shape */
+  font-size: 14px; /* Default size */
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s;
+}
+/* Explicitly remove link underline (cross-browser safe) */
+.admin-nav .btn {
+  text-decoration: none;
+  display: inline-flex;
+}
+/* Specific Button Styles */
+.admin-nav .btn {
+  padding: 6px 14px;
+  border-radius: 8px; /* Slightly squarer */
+  background: var(--tok-blue);
+  color: #fff;
+}
+.admin-nav .btn:hover, #student-view-btn:hover { background: var(--tok-blue-dark); }
+
+#student-view-btn {
+  padding: 8px 14px;
+  background: var(--tok-blue);
+  color: #fff;
+}
+
+.workspace-link-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  border: 1px solid var(--tok-blue);
+  color: var(--tok-blue);
+  background: #eff6ff;
+}
+.workspace-link-btn:hover { background: #dbeafe; }
+
+.workspace-link-btn-secondary {
+  border-color: #059669; color: #047857; background: #ecfdf5;
+}
+.workspace-link-btn-secondary:hover { background: #d1fae5; }
+
+/* ===========================
+   4. LAYOUT & CARDS
+   =========================== */
+.tok-admin-row { display: flex; gap: 16px; margin-bottom: 16px; }
+.tok-admin-col { flex: 1 1 0; }
+.overview-col, .progress-line { display: flex; flex-direction: column; gap: 4px; }
+
+.card {
+  border-radius: 12px;
+  border: 1px solid var(--tok-border);
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(15,23,42,0.03);
+  /* overflow: hidden;  <-- REMOVED to allow dropdowns to fly out */
+}
+
+.card-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--tok-border);
+  background: var(--tok-blue);
+  color: #fff;
+  
+  /* ADDED to maintain rounded corners since overflow is gone */
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+.card-header-muted { background: #f9fafb; color: var(--tok-text-main); }
+.card-body { padding: 16px; }
+
+/* Grids */
+.overview-grid, .selector-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+.overview-grid { margin-bottom: 12px; }
+.selector-grid { align-items: flex-end; gap: 12px 16px; } /* Override gap for selector */
+
+/* ===========================
+   5. METRICS, LISTS & PILLS
+   =========================== */
+.teacher-metrics-layout { display: flex; gap: 16px; margin-top: 8px; align-items: flex-start; }
+.teacher-list { min-width: 220px; }
+.teacher-list ul { list-style: none; padding: 0; margin: 0; }
+.teacher-list li { margin-bottom: 4px; }
+
+.teacher-metrics-panel {
+  flex: 1 1 0;
+  min-height: 80px;
+  border-left: 1px solid var(--tok-border);
+  padding-left: 16px;
+}
+
+.metrics-box-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.metric-box {
+  min-width: 160px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--tok-bg-soft);
+  border: 1px solid var(--tok-border);
+}
+
+/* Pills (Badges, Status, Teacher Buttons) */
+.badge-pill, .stage-pill, .teacher-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+.badge-pill { justify-content: center; background: #f3f4f6; color: #374151; }
+
+.stage-pill {
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: rgba(59,130,246,0.1);
+  color: #1d4ed8;
+  padding: 3px 8px;
+}
+.stage-pill-secondary { background: rgba(16,185,129,0.1); color: #047857; }
+
+.teacher-pill {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--tok-text-main);
+}
+.teacher-pill:hover { background: #edf2ff; border-color: #93c5fd; }
+.teacher-pill.is-active { background: var(--tok-blue); border-color: var(--tok-blue); color: #fff; }
+
+/* ===========================
+   6. FORMS & INPUTS
+   =========================== */
+.selector-field label { display: block; font-size: 13px; color: var(--tok-text-sub); margin-bottom: 4px; }
+.selector-field input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  font: inherit;
+}
+
+/* Autocomplete */
+.autocomplete-list {
+  position: absolute; top: 60px; left: 0; right: 0;
+  background: #fff;
+  border: 1px solid var(--tok-border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  z-index: 20;
+  max-height: 220px;
+  overflow-y: auto;
+  display: none;
+}
+.autocomplete-item { padding: 8px 10px; font-size: 14px; cursor: pointer; }
+.autocomplete-item:hover { background: #f3f4f6; }
+
+/* ===========================
+   7. PROGRESS BARS
+   =========================== */
+.progress-grid { display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
+.progress-label { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #374151; }
+.progress-track {
+  position: relative; width: 100%; height: 10px;
+  border-radius: 999px; background: #f3f4f6; overflow: hidden;
+}
+.progress-fill {
+  position: absolute; top: 0; left: 0; height: 100%; width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg,var(--tok-blue),#60a5fa);
+  transition: width 0.25s ease-out;
+}
+.progress-fill-secondary { background: linear-gradient(90deg,#059669,#22c55e); }
+
+/* ===========================
+   8. RESPONSIVE
+   =========================== */
+@media (max-width: 768px) {
+  .teacher-metrics-layout { flex-direction: column; }
+  .teacher-metrics-panel {
+    border-left: none; padding-left: 0;
+    border-top: 1px solid var(--tok-border); padding-top: 12px;
+  }
+}
+@media (max-width: 640px) {
+  .tok-admin-shell { padding-left: 8px; padding-right: 8px; }
+}

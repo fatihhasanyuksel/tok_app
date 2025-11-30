@@ -1,49 +1,51 @@
 // resources/js/app.js
-import { createApp } from 'vue';
+import { createApp, h, ref, watch } from 'vue';
 import axios from 'axios';
+import RichEditor from './components/RichEditor.vue';
 
-// --- Axios: Laravel-friendly defaults (session auth + CSRF) ---
+// ---------------------------------------------
+// Axios defaults (Laravel session + CSRF)
+// ---------------------------------------------
 axios.defaults.withCredentials = true;
+
 const tokenTag = document.querySelector('meta[name="csrf-token"]');
 if (tokenTag) {
   axios.defaults.headers.common['X-CSRF-TOKEN'] = tokenTag.getAttribute('content');
 }
+
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
-// --- Rich editor component (shared) ---
-import RichEditor from './components/RichEditor.vue';
-
-// -------------------------------------------------------------
-// 1) ToK App workspace rich editors (existing behavior)
+// ---------------------------------------------
+// 1) ToK App workspace rich editors (existing)
 //    Mounts on elements with .js-rich-editor
-// -------------------------------------------------------------
-function mountRichEditors() {
+//    ➜ NO YouTube here (enableYoutube left as default: false)
+// ---------------------------------------------
+function mountTokWorkspaceEditors() {
   const nodes = document.querySelectorAll('.js-rich-editor');
 
   nodes.forEach((el) => {
-    const ownerType = el.getAttribute('data-owner-type'); // "exhibition" | "essay"
-    const ownerId = Number(el.getAttribute('data-owner-id')); // numeric id
+    const ownerType = el.getAttribute('data-owner-type');        // "exhibition" | "essay"
+    const ownerId   = Number(el.getAttribute('data-owner-id'));  // numeric id
     const placeholder = el.getAttribute('data-placeholder') || 'Start writing…';
 
     const app = createApp(RichEditor, {
       ownerType,
       ownerId,
       placeholder,
+      // enableYoutube NOT set → stays false in workspaces
     });
 
-    // Provide axios to the component (optional, convenient)
     app.provide('axios', axios);
-
     app.mount(el);
   });
 }
 
-// -------------------------------------------------------------
-// 2) ToK Learning Space rich editors
-//    Mounts TipTap on LS forms only, using a v-model wrapper.
-//    Look for: data-tok-ls-rich-editor + inner textarea[data-tok-ls-input]
-// -------------------------------------------------------------
-function mountLsRichEditors() {
+// ---------------------------------------------
+// 2) ToK Learning Space – TEACHER lesson editors
+//    Mount beside the textarea, keep textarea as form field
+//    ➜ Here we turn ON YouTube (enableYoutube: true)
+// ---------------------------------------------
+function mountLsLessonEditors() {
   const containers = document.querySelectorAll('[data-tok-ls-rich-editor]');
 
   containers.forEach((container) => {
@@ -52,40 +54,105 @@ function mountLsRichEditors() {
 
     const initialContent = textarea.value || '';
 
+    // Hide textarea but keep it in DOM for form POST
+    textarea.style.display = 'none';
+
+    // Vue/TipTap mounts into a separate div
+    const mountPoint = document.createElement('div');
+    container.appendChild(mountPoint);
+
     const app = createApp({
-      components: { RichEditor },
-      data() {
-        return {
-          content: initialContent,
-        };
-      },
-      watch: {
-        content(newVal) {
-          // Keep hidden textarea in sync for normal form POST
+      setup() {
+        const content = ref(initialContent);
+
+        // Keep textarea in sync so POST still sends HTML
+        watch(content, (newVal) => {
           textarea.value = newVal;
-        },
+        });
+
+        // Render RichEditor with v-model (modelValue + update)
+        // and YouTube enabled ONLY for LS teacher lesson editors
+        return () =>
+          h(RichEditor, {
+            modelValue: content.value,
+            'onUpdate:modelValue': (val) => {
+              content.value = val;
+            },
+            enableYoutube: true, // 🔵 LS Create/Edit Lesson gets YT button
+          });
       },
-      template: `
-        <RichEditor v-model="content" />
-      `,
     });
 
-    app.mount(container);
+    app.provide('axios', axios);
+    app.mount(mountPoint);
   });
 }
 
-// -------------------------------------------------------------
-// 3) Boot both systems on DOM ready
-// -------------------------------------------------------------
-function bootEditors() {
-  // Existing ToK App workspaces
-  mountRichEditors();
+// ---------------------------------------------
+// 3) ToK Learning Space – STUDENT response editors
+//    Mount beside the textarea, keep textarea as form field
+//    ➜ No YouTube here (leave enableYoutube default: false)
+// ---------------------------------------------
+function mountLsStudentResponseEditors() {
+  const containers = document.querySelectorAll('[data-tok-ls-response-editor]');
 
-  // New Learning Space lesson editors
-  mountLsRichEditors();
+  containers.forEach((container) => {
+    const textarea = container.querySelector('textarea[data-tok-ls-response-input]');
+    if (!textarea) return;
+
+    const initialContent = textarea.value || '';
+
+    // Hide textarea but keep it for form + autosave
+    textarea.style.display = 'none';
+
+    const mountPoint = document.createElement('div');
+    container.appendChild(mountPoint);
+
+    const app = createApp({
+      setup() {
+        const content = ref(initialContent);
+
+        // Sync TipTap → textarea so:
+        //  - normal POST sends latest HTML
+        //  - existing autosave JS (listening on 'input') keeps working
+        watch(content, (newVal) => {
+          textarea.value = newVal;
+
+          // 🔴 IMPORTANT: tell the old autosave script "input happened"
+          const evt = new Event('input', { bubbles: true });
+          textarea.dispatchEvent(evt);
+        });
+
+        return () =>
+          h(RichEditor, {
+            modelValue: content.value,
+            'onUpdate:modelValue': (val) => {
+              content.value = val;
+            },
+            // enableYoutube not passed → false for students
+          });
+      },
+    });
+
+    app.provide('axios', axios);
+    app.mount(mountPoint);
+  });
 }
 
-// Mount when DOM is ready
+// ---------------------------------------------
+// 4) Boot everything on DOM ready
+// ---------------------------------------------
+function bootEditors() {
+  // Existing ToK App workspaces
+  mountTokWorkspaceEditors();
+
+  // LS teacher lesson content editors (with YouTube)
+  mountLsLessonEditors();
+
+  // LS student response editors (no YouTube)
+  mountLsStudentResponseEditors();
+}
+
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', bootEditors);
 } else {

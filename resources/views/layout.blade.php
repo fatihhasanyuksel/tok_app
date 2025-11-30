@@ -71,6 +71,9 @@
   </script>
   @vite(['resources/css/app.css', 'resources/js/app.js'])
   <link rel="stylesheet" href="{{ asset('css/overrides.css') }}">
+
+  {{-- Allow child views (like Admin Dashboard) to inject extra CSS/JS --}}
+  @yield('head')
 </head>
 <body>
 @php
@@ -81,7 +84,7 @@
 @endphp
 
 <header class="top-bar">
-  <h1>ToK App</h1>
+  <h1>ASAD ToK Loop</h1>
 
   {{-- Right-aligned actions --}}
   <div class="top-actions">
@@ -103,6 +106,11 @@
         @endunless
       @endif
 
+      {{-- ToK Learning Space link (left of Resources) --}}
+      <a class="btn-link" href="{{ route('tok-ls.teacher.classes') }}" style="margin-right: 15px;">
+        ToK Learning Space
+      </a>
+
       {{-- Resources for ALL roles --}}
       <a class="btn-link" href="{{ route('resources.index') }}">Resources</a>
 
@@ -111,11 +119,11 @@
         @csrf
         <button type="submit" class="btn-link">Logout</button>
       </form>
-@else
-  @if (!View::hasSection('hide_login_link'))
-    <a class="btn-link" href="{{ route('login') }}">Login</a>
-  @endif
-@endif
+    @else
+      @if (!View::hasSection('hide_login_link'))
+        <a class="btn-link" href="{{ route('login') }}">Login</a>
+      @endif
+    @endif
 
   </div>
 </header>
@@ -165,7 +173,7 @@
   if (!toggle || !panel) return;
 
   async function fetchJSON(url) {
-    const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });
+    const res = await fetch(url, { headers: { 'X-Requested-With':'XMLHttpRequest', 'Accept':'application/json' } });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return res.json();
   }

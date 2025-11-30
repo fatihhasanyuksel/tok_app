@@ -1,40 +1,46 @@
 @extends('tok_ls::layouts.ls')
 
+@section('tok_ls_breadcrumb')
+    <a href="{{ route('tok-ls.teacher.templates.index') }}">Lesson Library</a>
+@endsection
+
 @section('content')
 
-    <h1 class="tok-ls-page-title">ToK Learning Space – Your Classes</h1>
+    {{-- Header Section --}}
+    <div class="tok-header-container">
+        <h3 class="tok-ls-page-title">Your Classes</h3>
 
-    <p>
-        <a href="{{ route('tok-ls.teacher.classes.create') }}">+ Create New Class</a>
-    </p>
+        <div style="display:flex; gap:12px; align-items:center;">
+            <a href="{{ route('tok-ls.teacher.classes.archived') }}" class="tok-btn-secondary">
+                View Archived Classes
+            </a>
 
+            <a href="{{ route('tok-ls.teacher.classes.create') }}" class="tok-btn-primary">
+                + Create New Class
+            </a>
+        </div>
+    </div>
+
+    {{-- Content Section --}}
     @if ($classes->isEmpty())
-        <p>No classes created yet.</p>
+        <div class="tok-empty-state">
+            <h3>No classes created yet</h3>
+            <p>Get started by clicking the "Create New Class" button above.</p>
+        </div>
     @else
-        <ul class="tok-ls-class-list">
+        <div class="tok-ls-grid">
             @foreach ($classes as $class)
-                <li class="tok-ls-class-item" style="display:flex;align-items:center;gap:12px;">
+                {{-- Whole card is now a link --}}
+                <a href="{{ route('tok-ls.teacher.classes.show', $class->id) }}"
+                   class="tok-ls-card">
 
-                    {{-- Open class --}}
-                    <a href="{{ route('tok-ls.teacher.classes.show', $class->id) }}">
+                    <h3 class="tok-ls-card-title">
                         {{ $class->name }}
-                    </a>
+                    </h3>
 
-                    {{-- Delete Class --}}
-                    <form action="{{ route('tok-ls.teacher.classes.destroy', $class->id) }}"
-                          method="POST"
-                          onsubmit="return confirm('Are you sure you want to delete this class? This cannot be undone.');"
-                          style="display:inline;">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" style="color:red;">
-                            Delete
-                        </button>
-                    </form>
-
-                </li>
+                </a>
             @endforeach
-        </ul>
+        </div>
     @endif
 
 @endsection

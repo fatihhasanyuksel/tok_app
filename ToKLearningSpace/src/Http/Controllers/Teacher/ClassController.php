@@ -9,10 +9,10 @@ use App\Models\User;
 
 class ClassController extends Controller
 {
-
     public function index()
     {
         $classes = LsClass::query()
+            ->whereNull('archived_at')              // ← hide archived classes
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -59,24 +59,39 @@ class ClassController extends Controller
         ]);
     }
 
-public function destroy(LsClass $class)
-{
-    // TEMPORARY: allow delete for MVP, even if teacher_id is null / mismatched.
-    // Later, when all existing classes have correct teacher_id and we filter
-    // index() by the logged-in teacher, we re-enable this:
-    //
-    // if ($class->teacher_id !== auth()->id()) {
-    //     abort(403, 'Not authorized to delete this class.');
-    // }
+    // Archive (soft hide) a class
+    public function archive(LsClass $class)
+    {
+        // Later we can re-enable strict ownership checks if needed:
+        // if ($class->teacher_id !== auth()->id()) abort(403);
 
-    $class->delete();
+        if ($class->archived_at) {
+            return redirect()
+                ->route('tok-ls.teacher.classes.show', $class->id)
+                ->with('success', 'Class is already archived.');
+        }
 
-    return redirect()
-        ->route('tok-ls.teacher.classes')
-        ->with('success', 'Class deleted.');
-}
+        $class->archived_at = now();
+        $class->save();
 
-    // 🔹 Step 2.7.3 — Show "Add Students" page with real users + search
+        return redirect()
+            ->route('tok-ls.teacher.classes')
+            ->with('success', 'Class archived. You can restore it later from the archived list.');
+    }
+
+    public function destroy(LsClass $class)
+    {
+        // TEMPORARY: allow delete for MVP.
+        // Later will enforce ownership checks + soft delete rules.
+
+        $class->delete();
+
+        return redirect()
+            ->route('tok-ls.teacher.classes')
+            ->with('success', 'Class deleted.');
+    }
+
+    // Show "Add Students" page
     public function addStudents(LsClass $class, Request $request)
     {
         $search = trim((string) $request->input('q'));
@@ -103,7 +118,7 @@ public function destroy(LsClass $class)
         ]);
     }
 
-    // 🔹 Step 2.7.4 — Handle POST for attaching selected students
+    // Handle POST for attaching selected students
     public function storeStudents(LsClass $class, Request $request)
     {
         // Validate incoming IDs
@@ -112,28 +127,47 @@ public function destroy(LsClass $class)
             'student_ids.*' => 'integer|exists:users,id',
         ]);
 
-        // Attach students without removing existing ones, ignore duplicates
+        // Attach without removing existing ones, ignore duplicates
         $class->students()->syncWithoutDetaching($data['student_ids']);
 
-        // Redirect back to class detail page with a small success message
         return redirect()
             ->route('tok-ls.teacher.classes.show', $class->id)
             ->with('success', 'Students added successfully.');
     }
 
-    // 🔹 NEW — Remove a single student from the class
+    // Remove a single student from the class
     public function removeStudent(LsClass $class, User $student)
     {
-        // Later we can re-enable a strict ownership check:
-        // if ($class->teacher_id !== auth()->id()) {
-        //     abort(403);
-        // }
-
-        // Detach this student from the pivot table
+        // Later ownership checks may return
         $class->students()->detach($student->id);
 
         return redirect()
             ->route('tok-ls.teacher.classes.show', $class->id)
             ->with('success', 'Student removed from class.');
+    }
+
+    // List archived classes
+    public function archived(Request $request)
+    {
+        $classes = LsClass::query()
+            ->whereNotNull('archived_at')
+            ->orderBy('archived_at', 'desc')
+            ->get();
+
+        return view('tok_ls::teacher.classes.archived', [
+            'classes' => $classes,
+        ]);
+    }
+
+    // NEW: Unarchive a class
+    public function unarchive(LsClass $class)
+    {
+        // Restore visibility
+        $class->archived_at = null;
+        $class->save();
+
+        return redirect()
+            ->route('tok-ls.teacher.classes.archived')
+            ->with('success', 'Class has been unarchived.');
     }
 }

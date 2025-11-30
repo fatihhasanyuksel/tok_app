@@ -17,21 +17,46 @@
         </p>
     </div>
 
-    {{-- Box 1: Lesson content --}}
+    {{-- Card 1: Lesson overview --}}
+    <section class="tok-ls-section">
+        <h2>Lesson Overview</h2>
+
+        @if(!is_null($lesson->duration_minutes))
+            <p class="tok-ls-lesson-meta">
+                <strong>Estimated duration:</strong> {{ $lesson->duration_minutes }} min
+            </p>
+        @endif
+
+        @if (!empty($lesson->objectives))
+            <h3>Objectives</h3>
+            <p>
+                {!! nl2br(e($lesson->objectives)) !!}
+            </p>
+        @endif
+
+        @if (!empty($lesson->success_criteria))
+            <h3>Success Criteria</h3>
+            <p>
+                {!! nl2br(e($lesson->success_criteria)) !!}
+            </p>
+        @endif
+    </section>
+
+    {{-- Card 2: Lesson content in its own container --}}
     <section class="tok-ls-section">
         <h2>Lesson Content</h2>
 
         @if ($lesson->content)
             <div class="tok-ls-lesson-content">
-                {!! nl2br(e($lesson->content)) !!}
+                {!! $lesson->content !!}
             </div>
         @else
             <p class="tok-ls-muted">No lesson content has been added yet.</p>
         @endif
     </section>
 
-    {{-- Box 2: Student response --}}
-    <section class="tok-ls-section">
+    {{-- Card 3: Student response --}}
+    <section class="tok-ls-section tok-ls-response-editor">
         <h2>Your Response</h2>
 
         <form method="POST"
@@ -40,14 +65,20 @@
         >
             @csrf
 
+            {{-- Student Response (TipTap-ready) --}}
             <div class="tok-ls-form-group">
                 <label for="student_response" class="tok-ls-label">Write your response</label>
-                <textarea
-                    id="student_response"
-                    name="student_response"
-                    rows="6"
-                    class="tok-ls-textarea"
-                >{{ old('student_response', $response->student_response ?? '') }}</textarea>
+
+                <div data-tok-ls-response-editor>
+                    <textarea
+                        id="student_response"
+                        name="student_response"
+                        class="tok-ls-textarea"
+                        rows="6"
+                        data-tok-ls-response-input
+                    >{{ old('student_response', $response->student_response ?? '') }}</textarea>
+                </div>
+
                 @error('student_response')
                     <p class="tok-ls-error">{{ $message }}</p>
                 @enderror
@@ -65,19 +96,16 @@
         </form>
     </section>
 
-    {{-- Box 3: Teacher feedback --}}
+    {{-- Card 4: Teacher feedback --}}
     <section class="tok-ls-section">
         <h2>Teacher Feedback</h2>
 
         @if ($response && $response->teacher_feedback)
-            <div class="tok-ls-feedback-box">
-                {!! nl2br(e($response->teacher_feedback)) !!}
+            <div class="tok-ls-lesson-content">
+                {!! $response->teacher_feedback !!}
             </div>
-        @else
-            <p class="tok-ls-muted">
-                No feedback has been added yet.
-            </p>
         @endif
+
     </section>
 
     {{-- Lightweight autosave --}}
