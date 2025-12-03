@@ -2,133 +2,199 @@
 
 @php
     use Illuminate\Support\Str;
-    // Safety: these may not be set depending on controller
     $q = $q ?? '';
     $teachers = $teachers ?? collect();
 @endphp
 
 @section('suppress_global_flash', true)
 
+@section('head')
+    {{-- Load unified admin UI stylesheet --}}
+    <link rel="stylesheet" href="{{ asset('tok-admin/css/tok-admin-dashboard.css') }}">
+@endsection
+
 @section('body')
-  {{-- Page title --}}
-  <div style="margin:4px 0 8px;">
-    <h2 style="margin:0;">Manage Students</h2>
-  </div>
+<div class="tok-admin-shell" style="max-width:1300px;">
 
-  {{-- local flashes (scoped keys preferred, old keys as fallback) --}}
-  @php
-      $ok  = session('ok_students') ?? session()->pull('ok');
-      $gen = session('generated_password_students') ?? session()->pull('generated_password');
-  @endphp
-  @if($ok)
-    <div class="flash" style="margin-top:6px">{{ $ok }}</div>
-  @endif
-  @if($gen)
-    <div class="flash" style="margin-top:6px">
-      Generated password:
-      <code>{{ $gen }}</code>
-      — copy it now; it will not be shown again.
-    </div>
-  @endif
+    {{-- Page Title --}}
+    <h2 class="admin-page-title">Manage Students</h2>
+    <p class="admin-page-subtitle">Create, search, and maintain student accounts.</p>
 
-  {{-- search --}}
-  <form method="get" action="{{ route('admin.students.index') }}"
-        style="margin:14px 0 8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-    <input type="text" name="q" value="{{ $q }}" placeholder="Search by email or ID…"
-           style="min-width:260px;" />
-    <button class="btn">Search</button>
-    @if($q !== '')
-      <a class="btn" href="{{ route('admin.students.index') }}">Clear</a>
+    {{-- Local flashes --}}
+    @php
+        $ok  = session('ok_students') ?? session()->pull('ok');
+        $gen = session('generated_password_students') ?? session()->pull('generated_password');
+    @endphp
+
+    @if($ok)
+        <div class="flash" style="margin-top:6px">{{ $ok }}</div>
     @endif
-  </form>
 
-  {{-- Add Student (moved here, top-left above the table) --}}
-  <div style="margin:10px 0;">
-    <a class="btn" href="{{ route('admin.students.create') }}">Add Student</a>
-  </div>
+    @if($gen)
+        <div class="flash" style="margin-top:6px">
+            Generated password:
+            <code>{{ $gen }}</code>
+            — copy it now; it will not be shown again.
+        </div>
+    @endif
 
-  @if($students->isEmpty())
-    <p class="small muted" style="margin-top:10px;">No students found.</p>
-  @else
-    {{-- Match teacher list aesthetics --}}
-    <style>
-      table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-      th, td { padding: 10px 12px; border-bottom: 1px solid #eee; text-align: left; font-size: 14px; vertical-align: top; }
-      th { font-weight: 600; background: #fafafa; }
-      tr:hover td { background: #f9f9f9; }
-      .t-name { font-weight: 600; }
-      .muted { color: #777; font-size: 13px; }
 
-      /* Nicer action buttons without changing your global .btn */
-      .btn-ghost { background:#f7f7f7; border:1px solid #e5e5e5; padding:6px 10px; border-radius:8px; font-size:13px; }
-      .btn-danger-ghost { background:#fff5f5; border:1px solid #f3b4b4; color:#b62020; }
-      .actions-stack { display:flex; gap:6px; flex-wrap:wrap; }
-      @media (min-width: 1024px) {
-        .actions-stack { flex-wrap:nowrap; }
-      }
-    </style>
+    {{-- CARD WRAPPER --}}
+    <div class="card" style="margin-top:16px;">
 
-    <table>
-      <thead>
-        <tr>
-          <th style="width:32%">Name</th>
-          <th style="width:32%">Email</th>
-          <th style="width:20%">Teacher</th>
-          <th style="width:16%">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        @foreach($students as $s)
-          @php
-            // Build a display name safely:
-            $first = $s->first_name ?? '';
-            $last  = $s->last_name  ?? '';
-            $studentName = trim($first . ' ' . $last);
+        {{-- HEADER: Title + Add Student --}}
+        <div class="card-header card-header-muted"
+             style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="card-header-title">
+                All Students ({{ $students->total() ?? $students->count() }})
+            </div>
 
-            if ($studentName === '' && !empty($s->name)) {
-              $studentName = $s->name;
-            }
-            if ($studentName === '') {
-              $studentName = isset($s->email) ? Str::of($s->email)->before('@')->headline() : '—';
-            }
+            <a href="{{ route('admin.students.create') }}"
+               class="btn"
+               style="font-size:14px; border-radius:8px;">
+                + Add Student
+            </a>
+        </div>
 
-            $t = $teachers->firstWhere('id', $s->teacher_id);
-            $teacherName = $t->name ?? '—';
 
-            $sid = is_object($s) ? ($s->id ?? null) : ($s['id'] ?? null);
-          @endphp
+        <div class="card-body">
 
-          <tr>
-            <td class="t-name">{{ $studentName }}</td>
-            <td>{{ $s->email }}</td>
-            <td>{{ $teacherName }}</td>
-            <td>
-              <div class="actions-stack">
-                <a class="btn-ghost" href="{{ route('admin.students.edit', ['student' => $sid]) }}">Edit</a>
+            {{-- SEARCH BAR --}}
+            <form method="get"
+                  action="{{ route('admin.students.index') }}"
+                  style="margin:0 0 14px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
 
-                <form method="POST"
-                      action="{{ route('admin.students.destroy', ['student' => $sid]) }}"
-                      onsubmit="return confirm('Delete this student? This does not remove their user account.');">
-                  @csrf @method('DELETE')
-                  <button class="btn-ghost btn-danger-ghost" type="submit">Delete</button>
-                </form>
+                <input type="text"
+                       name="q"
+                       value="{{ $q }}"
+                       placeholder="Search by email or ID…"
+                       style="
+                           min-width:260px;
+                           padding:8px 10px;
+                           border-radius:10px;
+                           border:1px solid #d1d5db;
+                           font-size:14px;
+                       ">
 
-                <form method="POST"
-                      action="{{ route('admin.students.reset', ['student' => $sid]) }}"
-                      onsubmit="return confirm('Generate a new password for this student?');">
-                  @csrf
-                  <input type="hidden" name="generate" value="1">
-                  <button class="btn-ghost" type="submit">Reset PW</button>
-                </form>
-              </div>
-            </td>
-          </tr>
-        @endforeach
-      </tbody>
-    </table>
+                <button class="workspace-link-btn" type="submit">Search</button>
 
-    <div style="margin-top:12px">
-      {{ $students->links() }}
+                @if($q !== '')
+                    <a href="{{ route('admin.students.index') }}"
+                       class="workspace-link-btn workspace-link-btn-secondary">
+                        Clear
+                    </a>
+                @endif
+            </form>
+
+
+            {{-- EMPTY STATE --}}
+            @if($students->isEmpty())
+                <p class="empty-state-text" style="margin-top:10px;">No students found.</p>
+            @else
+
+                {{-- Hover effect --}}
+                <style>
+                    .tls-row-hover td {
+                        transition: background 0.15s ease;
+                    }
+                    .tls-row-hover:hover td {
+                        background: #f9fafb;
+                    }
+                </style>
+
+                {{-- TABLE --}}
+                <div style="overflow-x:auto; margin-top:4px;">
+                    <table style="width:100%; border-collapse:collapse; font-size:14px;">
+                        <thead>
+                            <tr>
+                                <th style="padding:8px; border-bottom:1px solid #e5e7eb; text-align:left; width:32%;">Name</th>
+                                <th style="padding:8px; border-bottom:1px solid #e5e7eb; text-align:left; width:32%;">Email</th>
+                                <th style="padding:8px; border-bottom:1px solid #e5e7eb; text-align:left; width:20%;">Teacher</th>
+                                <th style="padding:8px; border-bottom:1px solid #e5e7eb; text-align:left; width:16%;">Actions</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                        @foreach($students as $s)
+                            @php
+                                $first = $s->first_name ?? '';
+                                $last  = $s->last_name  ?? '';
+                                $studentName = trim($first.' '.$last);
+
+                                if ($studentName === '' && !empty($s->name)) {
+                                    $studentName = $s->name;
+                                }
+                                if ($studentName === '') {
+                                    $studentName = Str::of($s->email)->before('@')->headline();
+                                }
+
+                                $t = $teachers->firstWhere('id', $s->teacher_id);
+                                $teacherName = $t->name ?? '—';
+
+                                $sid = $s->id;
+                            @endphp
+
+                            <tr class="tls-row-hover">
+                                <td style="padding:8px; border-bottom:1px solid #f3f4f6; font-weight:600;">
+                                    {{ $studentName }}
+                                </td>
+
+                                <td style="padding:8px; border-bottom:1px solid #f3f4f6;">
+                                    {{ $s->email }}
+                                </td>
+
+                                <td style="padding:8px; border-bottom:1px solid #f3f4f6;">
+                                    {{ $teacherName }}
+                                </td>
+
+                                <td style="padding:8px; border-bottom:1px solid #f3f4f6; white-space:nowrap;">
+                                    <div style="display:flex; gap:6px; flex-wrap:nowrap;">
+
+                                        {{-- Edit --}}
+                                        <a href="{{ route('admin.students.edit', $sid) }}"
+                                           class="workspace-link-btn">
+                                            Edit
+                                        </a>
+
+                                        {{-- Delete --}}
+                                        <form method="POST"
+                                              action="{{ route('admin.students.destroy', $sid) }}"
+                                              onsubmit="return confirm('Delete this student? This does not remove their user account.');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit"
+                                                    class="workspace-link-btn workspace-link-btn-danger">
+                                                Delete
+                                            </button>
+                                        </form>
+
+                                        {{-- Reset PW --}}
+                                        <form method="POST"
+                                              action="{{ route('admin.students.reset', $sid) }}"
+                                              onsubmit="return confirm('Generate a new password for this student?');">
+                                            @csrf
+                                            <input type="hidden" name="generate" value="1">
+                                            <button type="submit" class="workspace-link-btn">
+                                                Reset PW
+                                            </button>
+                                        </form>
+
+                                    </div>
+                                </td>
+                            </tr>
+
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                <div style="margin-top:12px;">
+                    {{ $students->links() }}
+                </div>
+
+            @endif
+        </div>
     </div>
-  @endif
+
+</div>
 @endsection

@@ -12,9 +12,10 @@
 }
 
 .tok-admin-shell {
-  max-width: 1100px;
-  margin: 0 auto 40px;
-  padding: 0 16px 40px;
+  /* match the layout <body> width & alignment */
+  max-width: 100%;
+  margin: 0 0 40px;
+  padding: 0 0 40px; /* keep only bottom padding */
   font-family: system-ui, -apple-system, sans-serif;
   color: var(--tok-text-main);
 }
@@ -23,7 +24,7 @@
    2. TYPOGRAPHY UTILITIES
    =========================== */
 /* Titles */
-.admin-page-title { margin: 0 0 8px; font-size: 22px; font-weight: 700; }
+.admin-page-title { margin: 0 0 8px; font-size: 18px; font-weight: 700; }
 .card-header h3 { margin: 0; font-size: 15px; font-weight: 600; }
 
 /* Subtext & Meta */
@@ -39,9 +40,8 @@
   text-transform: uppercase;
   letter-spacing: .06em;
   color: var(--tok-muted);
-  margin-bottom: 2px; /* metric-label uses 2px */
+  margin-bottom: 2px;
 }
-/* Specific adjustment for teacher list title spacing */
 .teacher-list-title { margin-bottom: 4px; }
 
 /* Values (Big & Bold) */
@@ -75,23 +75,24 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 999px; /* Pill shape */
-  font-size: 14px; /* Default size */
+  border-radius: 999px;
+  font-size: 14px;
   font-weight: 500;
   text-decoration: none;
   cursor: pointer;
   border: none;
   transition: background 0.2s;
 }
-/* Explicitly remove link underline (cross-browser safe) */
+
 .admin-nav .btn {
   text-decoration: none;
   display: inline-flex;
 }
+
 /* Specific Button Styles */
 .admin-nav .btn {
   padding: 6px 14px;
-  border-radius: 8px; /* Slightly squarer */
+  border-radius: 8px;
   background: var(--tok-blue);
   color: #fff;
 }
@@ -117,6 +118,16 @@
 }
 .workspace-link-btn-secondary:hover { background: #d1fae5; }
 
+/* Danger variant for pill buttons (Delete) */
+.workspace-link-btn-danger {
+  border-color: #f87171;      /* red border */
+  color: #b91c1c;             /* red text */
+  background: #fef2f2;        /* light red bg */
+}
+.workspace-link-btn-danger:hover {
+  background: #fee2e2;        /* slightly stronger on hover */
+}
+
 /* ===========================
    4. LAYOUT & CARDS
    =========================== */
@@ -129,7 +140,6 @@
   border: 1px solid var(--tok-border);
   background: #fff;
   box-shadow: 0 10px 30px rgba(15,23,42,0.03);
-  /* overflow: hidden;  <-- REMOVED to allow dropdowns to fly out */
 }
 
 .card-header {
@@ -137,8 +147,6 @@
   border-bottom: 1px solid var(--tok-border);
   background: var(--tok-blue);
   color: #fff;
-  
-  /* ADDED to maintain rounded corners since overflow is gone */
   border-top-left-radius: 12px;
   border-top-right-radius: 12px;
 }
@@ -152,7 +160,7 @@
   gap: 16px;
 }
 .overview-grid { margin-bottom: 12px; }
-.selector-grid { align-items: flex-end; gap: 12px 16px; } /* Override gap for selector */
+.selector-grid { align-items: flex-end; gap: 12px 16px; }
 
 /* ===========================
    5. METRICS, LISTS & PILLS
@@ -184,7 +192,7 @@
   border: 1px solid var(--tok-border);
 }
 
-/* Pills (Badges, Status, Teacher Buttons) */
+/* Pills */
 .badge-pill, .stage-pill, .teacher-pill {
   display: inline-flex;
   align-items: center;
@@ -194,13 +202,10 @@
 }
 
 .badge-pill { justify-content: center; background: #f3f4f6; color: #374151; }
-
 .stage-pill {
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  text-transform: uppercase; letter-spacing: 0.03em;
   background: rgba(59,130,246,0.1);
-  color: #1d4ed8;
-  padding: 3px 8px;
+  color: #1d4ed8; padding: 3px 8px;
 }
 .stage-pill-secondary { background: rgba(16,185,129,0.1); color: #047857; }
 
@@ -246,14 +251,24 @@
 /* ===========================
    7. PROGRESS BARS
    =========================== */
-.progress-grid { display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
-.progress-label { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #374151; }
+.progress-grid {
+  display: flex; flex-direction: column;
+  gap: 14px; margin-top: 8px;
+}
+
+.progress-label {
+  display: flex; justify-content: space-between;
+  align-items: center; font-size: 13px; color: #374151;
+}
+
 .progress-track {
   position: relative; width: 100%; height: 10px;
   border-radius: 999px; background: #f3f4f6; overflow: hidden;
 }
+
 .progress-fill {
-  position: absolute; top: 0; left: 0; height: 100%; width: 0%;
+  position: absolute; top: 0; left: 0;
+  height: 100%; width: 0%;
   border-radius: 999px;
   background: linear-gradient(90deg,var(--tok-blue),#60a5fa);
   transition: width 0.25s ease-out;
@@ -272,4 +287,42 @@
 }
 @media (max-width: 640px) {
   .tok-admin-shell { padding-left: 8px; padding-right: 8px; }
+}
+
+/* ===========================
+   9. TLS Student List Hover (FINAL)
+   =========================== */
+.tls-student-item {
+    transition: background 0.15s ease, padding-left 0.15s ease, color 0.15s ease;
+}
+
+/* Active student */
+.tls-student-item.is-active {
+    background: #eff6ff !important;
+    color: #1d4ed8 !important;
+    font-weight: 600 !important;
+}
+
+/* Hover only applies to non-active items */
+.tls-student-item:not(.is-active):hover {
+    background: #f0f7ff !important;
+    padding-left: 18px !important;
+    color: #1d4ed8 !important;
+}
+/* ==========================================
+   TLS Class Row Hover Effect (Admin > Classes)
+   ========================================== */
+.tls-class-row td {
+    transition: background 0.15s ease, padding-left 0.15s ease, color 0.15s ease;
+}
+
+.tls-class-row:hover td {
+    background: #f0f7ff !important;
+    padding-left: 6px !important;
+    color: #1d4ed8 !important;
+    cursor: pointer;
+}
+
+.tls-class-row:hover a {
+    color: #1d4ed8 !important;
 }

@@ -1,11 +1,33 @@
+/* ============================================================
+   Shared Overrides
+   ============================================================ */
+
 /* Minimal pill style — no colors here */
 .status-pill {
-  display:inline-flex;
-  align-items:center;
-  padding:.25rem .625rem;
-  border:1px solid transparent;
-  border-radius:9999px;
-  font-size:.875rem;
-  line-height:1.25rem;
-  white-space:nowrap;
+  display: inline-flex;
+  align-items: center;
+  padding: .25rem .625rem;
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  font-size: .875rem;
+  line-height: 1.25rem;
+  white-space: nowrap;
 }
+
+/* ============================================================
+   ADMIN: Fix oversized images in Lesson View
+   ============================================================ */
+/*  
+   The admin lesson pages load tok-admin-dashboard.css AFTER
+   overrides.css, so its image rules win unless we force ours.  
+*/
+.tok-admin-shell .card-body img {
+  max-width: 50% !important;
+  height: auto !important;
+  display: block !important;
+  margin: 0 auto !important;
+}
+
+/* (Optional future section)  
+   If you need more admin-only overrides, keep them under here.
+   ------------------------------------------------------------ */

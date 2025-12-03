@@ -520,3 +520,41 @@ body {
   white-space: nowrap;
   border: 0;
 }
+
+/* ================================
+   ToK Loop Brand (Learning Space)
+   ================================ */
+
+.tok-ls-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tok-ls-brand img {
+    height: 21px;      /* match workspace_v3 */
+    width: auto;
+    display: block;
+}
+
+/* the grey dot between logo and text */
+.tok-ls-dot {
+    margin: 0 4px;
+    color: #000;
+    font-size: 14px;
+    flex-shrink: 0;
+    font-weight: 700;          /* make dot bold */
+}
+
+/* the "ToK LEARNING SPACE" text */
+.tok-ls-logo-text {
+    font-weight: 500;          /* only this text becomes bold */
+    font-size: 14px;
+    letter-spacing: 0.03em;
+}
+
+/* still available if you use it elsewhere */
+.tok-ls-section {
+    font-weight: 500;
+    font-size: 16px;
+}

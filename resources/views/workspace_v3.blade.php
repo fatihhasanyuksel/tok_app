@@ -26,9 +26,13 @@
   <header class="topbar" role="banner">
     <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
 
-      <strong class="brand">ToK V2</strong>
-      <span style="margin:0 8px; color:#bbb;">&bull;</span>
-      <span>{{ isset($type) ? ucfirst($type) : 'Submission' }}</span>
+      <div class="topbar-brand">
+        <img
+          src="{{ asset('tok-ls/ToKLoopLogo.svg') }}"
+          alt="ASAD ToK Loop logo">
+        <span style="margin:0 8px; color:#bbb;">&bull;</span>
+        <span>{{ isset($type) ? ucfirst($type) : 'Submission' }}</span>
+      </div>
 
       @php
         $isStudent = optional(Auth::user())->role === 'student';

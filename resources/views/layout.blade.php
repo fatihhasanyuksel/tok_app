@@ -12,6 +12,11 @@
   /* Global layout */
   body{
     font-family: system-ui, Segoe UI, Roboto, Ubuntu, sans-serif;
+
+    /* Sharper, smoother text across browsers */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+
     /* Use most of the viewport, max 1400px for readability */
     max-width: min(1400px, 96vw);
     margin: 40px auto;
@@ -29,9 +34,27 @@
     gap:16px;
     margin-bottom:14px;
   }
-  header.top-bar h1{
-    margin:0;
+
+  /* BRAND (logo + title) */
+  .tok-brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
   }
+  .tok-logo{
+    height:34px;
+    width:auto;
+    display:block;
+  }
+  .tok-brand-text{
+    font-size:26px;           /* elegant size */
+    font-weight:700;
+    letter-spacing:-0.03em;
+    color:#111827;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   .top-actions{
     display:flex;
     align-items:center;
@@ -69,6 +92,7 @@
       };
     })();
   </script>
+
   @vite(['resources/css/app.css', 'resources/js/app.js'])
   <link rel="stylesheet" href="{{ asset('css/overrides.css') }}">
 
@@ -84,7 +108,12 @@
 @endphp
 
 <header class="top-bar">
-  <h1>ASAD ToK Loop</h1>
+
+  <div class="tok-brand">
+    <img src="{{ asset('tok-ls/ToKLoopLogo.svg') }}"
+         alt="ASAD ToK Loop"
+         class="tok-logo">
+  </div>
 
   {{-- Right-aligned actions --}}
   <div class="top-actions">
@@ -94,22 +123,22 @@
       {{-- Role-aware quick links (keep Admin/Students shortcuts) --}}
       @if($role === 'admin')
         @unless (request()->routeIs('admin.dashboard'))
-          <a class="btn-link" href="{{ route('admin.dashboard') }}">Admin</a>
+          <a class="btn-link" href="{{ route('admin.dashboard') }}">Admin Dashboard</a>
         @endunless
       @elseif($role === 'teacher')
         @unless (request()->routeIs('students.index'))
           <a class="btn-link" href="{{ route('students.index') }}">Students</a>
         @endunless
+
+        {{-- ToK Learning Space link ONLY for teachers --}}
+        <a class="btn-link" href="{{ route('tok-ls.teacher.classes') }}" style="margin-right: 15px;">
+          ToK Learning Space
+        </a>
       @elseif($role === 'student')
         @unless (request()->routeIs('student.dashboard'))
           <a class="btn-link" href="{{ route('student.dashboard') }}">Dashboard</a>
         @endunless
       @endif
-
-      {{-- ToK Learning Space link (left of Resources) --}}
-      <a class="btn-link" href="{{ route('tok-ls.teacher.classes') }}" style="margin-right: 15px;">
-        ToK Learning Space
-      </a>
 
       {{-- Resources for ALL roles --}}
       <a class="btn-link" href="{{ route('resources.index') }}">Resources</a>

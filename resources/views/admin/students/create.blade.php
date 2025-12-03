@@ -1,5 +1,10 @@
 @extends('layout')
 
+@section('head')
+    {{-- Use unified admin styles (pill buttons etc.) --}}
+    <link rel="stylesheet" href="{{ asset('tok-admin/css/tok-admin-dashboard.css') }}">
+@endsection
+
 @section('body')
   <style>
     /* Scoped styling – only affects student create/edit pages */
@@ -84,7 +89,7 @@
       flex-wrap: wrap;
     }
 
-    /* NEW pill button */
+    /* Password generator pill */
     .generate-pill-btn {
       padding: 8px 16px;
       border-radius: 999px;
@@ -180,7 +185,7 @@
             />
           </div>
 
-          {{-- NEW pill button replacing checkbox --}}
+          {{-- Pill button to generate password --}}
           <div>
             <button type="button" id="generate-pass-btn" class="generate-pill-btn">
               Generate strong password
@@ -202,14 +207,18 @@
       </div>
 
       <div class="admin-student-actions">
-        <button class="btn" type="submit">Create</button>
-          <button
-    type="button"
-    class="btn"
-    onclick="window.location='{{ route('admin.students.index') }}'"
-  >
-    Cancel
-  </button>
+        {{-- Create – blue pill button --}}
+        <button class="workspace-link-btn" type="submit">
+          Create
+        </button>
+
+        {{-- Cancel – same pill style, just link back --}}
+        <button
+          type="button"
+          class="workspace-link-btn"
+          onclick="window.location='{{ route('admin.students.index') }}'">
+          Cancel
+        </button>
       </div>
     </form>
   </div>
@@ -226,22 +235,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const lower   = "abcdefghijkmnopqrstuvwxyz";     // No l
     const digits  = "23456789";                     // No 0,1
     const symbols = "!@#$%";
-
     const all = upper + lower + digits + symbols;
 
-    // Ensure one from each group
     let pass = "";
     pass += upper[Math.floor(Math.random() * upper.length)];
     pass += lower[Math.floor(Math.random() * lower.length)];
     pass += digits[Math.floor(Math.random() * digits.length)];
     pass += symbols[Math.floor(Math.random() * symbols.length)];
 
-    // Fill to 8 chars
     for (let i = 0; i < 4; i++) {
       pass += all[Math.floor(Math.random() * all.length)];
     }
 
-    // Shuffle
     return pass.split("").sort(() => 0.5 - Math.random()).join("");
   }
 

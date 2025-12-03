@@ -36,12 +36,22 @@
         }
     </style>
 </head>
+
 <body class="tok-ls tok-ls--teacher">
     <div class="tok-ls-shell">
 
+        {{-- HEADER --}}
         <header class="tok-ls-header">
             <div class="tok-ls-header-left">
-                <span class="tok-ls-logo-text">ToK Learning Space</span>
+                <div class="tok-ls-brand">
+                    <img
+                        src="{{ asset('tok-ls/ToKLoopLogo.svg') }}"
+                        alt="ASAD ToK Loop logo">
+                    <span class="tok-ls-dot">&bull;</span>
+                    <span class="tok-ls-logo-text">
+                        @yield('ls_header_title', 'ToK Learning Space')
+                    </span>
+                </div>
             </div>
 
             <div class="tok-ls-header-right">
@@ -60,6 +70,7 @@
         {{-- Global flash messages for the LS module --}}
         @if (session('success') || session('error') || ($errors->any() ?? false))
             <div class="tok-ls-flash-region">
+
                 @if (session('success'))
                     <div class="tok-ls-alert tok-ls-alert--success">
                         {{ session('success') }}
@@ -81,17 +92,18 @@
                         </ul>
                     </div>
                 @endif
+
             </div>
         @endif
 
-        {{-- Main content --}}
+        {{-- MAIN CONTENT --}}
         <main class="tok-ls-container">
             @yield('content')
         </main>
 
     </div>
 
-    {{-- ⭐ REQUIRED FOR TIPTAP / MAIN JS --}}
+    {{-- REQUIRED FOR TIPTAP / MAIN JS --}}
     @vite('resources/js/app.js')
 
 </body>

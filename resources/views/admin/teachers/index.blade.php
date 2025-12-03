@@ -1,62 +1,129 @@
 @extends('layout')
 
-@section('body')
-  {{-- Header row --}}
-  <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 0 8px;">
-    <h2 style="margin:0;">Teachers</h2>
-    <a class="btn" href="{{ route('admin.teachers.create') }}">Add Teacher</a>
-  </div>
+@section('head')
+    {{-- Re-use the same admin CSS as the main dashboard / TLS --}}
+    <link rel="stylesheet" href="{{ asset('tok-admin/css/tok-admin-dashboard.css') }}">
+@endsection
 
-  {{-- Flash (unchanged logic) --}}
-  @if(session('ok'))
-    <div class="flash">{{ session('ok') }}</div>
-  @endif
+@section('content')
+    <div class="tok-admin-shell">
 
-  {{-- Table styles (match Students page look) --}}
-  <style>
-    table { width:100%; border-collapse:collapse; margin-top:10px; }
-    th, td { padding:10px 12px; border-bottom:1px solid #eee; text-align:left; font-size:14px; }
-    th { font-weight:600; background:#fafafa; }
-    tr:hover td { background:#f9f9f9; }
-    .actions { display:flex; gap:6px; flex-wrap:wrap; }
-    .btn-ghost { background:#f7f7f7; border:1px solid #e5e5e5; padding:6px 10px; border-radius:8px; font-size:13px; }
-    .btn-danger-ghost { background:#fff5f5; border:1px solid #f3b4b4; color:#b62020; }
-  </style>
+        <h2 class="admin-page-title">Teachers</h2>
+        
+        <p class="admin-page-subtitle">
+            Manage ToK App teachers. Use this screen to add, edit, or remove teacher accounts.
+        </p>
 
-  <table>
-    <thead>
-      <tr>
-        <th style="width:30%">Name</th>
-        <th style="width:35%">Email</th>
-        <th style="width:10%">Active</th>
-        <th style="width:10%">Admin</th>
-        <th style="width:15%"></th>
-      </tr>
-    </thead>
-    <tbody>
-      @forelse($teachers as $t)
-        <tr>
-          <td>{{ $t->name }}</td>
-          <td>{{ $t->email }}</td>
-          <td>{{ $t->active ? 'Yes' : 'No' }}</td>
-          <td>{{ $t->is_admin ? 'Yes' : 'No' }}</td>
-          <td>
-            <div class="actions">
-              <a class="btn-ghost" href="{{ route('admin.teachers.edit', $t) }}">Edit</a>
+        <div class="card">
 
-              <form method="post" action="{{ route('admin.teachers.destroy', $t) }}"
-                    onsubmit="return confirm('Delete this teacher?')" style="display:inline">
-                @csrf @method('DELETE')
-                <button class="btn-ghost btn-danger-ghost" type="submit">Delete</button>
-              </form>
+            {{-- Card header with title left, Add Teacher button right --}}
+            <div class="card-header card-header-muted" 
+                 style="display:flex; justify-content:space-between; align-items:center;">
+                
+                <div class="card-header-title">
+                    All Teachers ({{ $teachers->count() }})
+                </div>
+
+                <a href="{{ route('admin.teachers.create') }}"
+                   class="btn"
+                   style="font-size:13px; padding:4px 10px; border-radius:8px;">
+                    + Add Teacher
+                </a>
             </div>
-          </td>
-        </tr>
-      @empty
-        <tr><td colspan="5">No teachers yet.</td></tr>
-      @endforelse
-    </tbody>
-  </table>
 
-  {{ $teachers->links() }}
+            <div class="card-body">
+                @if ($teachers->isEmpty())
+                    <p class="empty-state-text">No teachers found yet.</p>
+                @else
+                    {{-- Same hover style as students table --}}
+                    <style>
+                        .tls-row-hover td {
+                            transition: background 0.15s ease;
+                        }
+                        .tls-row-hover:hover td {
+                            background: #f9fafb;
+                        }
+                    </style>
+
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%; border-collapse:collapse; font-size:14px;">
+                            <thead>
+                                <tr>
+                                    <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Name</th>
+                                    <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Email</th>
+                                    <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Active</th>
+                                    <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Admin</th>
+                                    <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">Actions</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                @foreach ($teachers as $teacher)
+                                    <tr class="tls-row-hover">
+                                        <td style="padding:8px 8px; border-bottom:1px solid #f3f4f6;">
+                                            {{ $teacher->name }}
+                                        </td>
+
+                                        <td style="padding:8px 8px; border-bottom:1px solid #f3f4f6;">
+                                            {{ $teacher->email }}
+                                        </td>
+
+                                        <td style="padding:8px 8px; border-bottom:1px solid #f3f4f6;">
+                                            @if ($teacher->active)
+                                                <span class="badge-pill" style="background:#dcfce7; color:#166534;">
+                                                    Yes
+                                                </span>
+                                            @else
+                                                <span class="badge-pill" style="background:#fee2e2; color:#b91c1c;">
+                                                    No
+                                                </span>
+                                            @endif
+                                        </td>
+
+                                        <td style="padding:8px 8px; border-bottom:1px solid #f3f4f6;">
+                                            @if ($teacher->is_admin)
+                                                <span class="badge-pill" style="background:#dbeafe; color:#1d4ed8;">
+                                                    Yes
+                                                </span>
+                                            @else
+                                                <span class="badge-pill" style="background:#f3f4f6; color:#374151;">
+                                                    No
+                                                </span>
+                                            @endif
+                                        </td>
+
+                                        <td style="padding:8px 8px; border-bottom:1px solid #f3f4f6; white-space:nowrap;">
+                                            <div style="display:flex; gap:6px; flex-wrap:nowrap;">
+
+                                                <a href="{{ route('admin.teachers.edit', $teacher->id) }}"
+                                                   class="workspace-link-btn">
+                                                    Edit
+                                                </a>
+
+                                                <form action="{{ route('admin.teachers.destroy', $teacher->id) }}"
+                                                      method="POST"
+                                                      onsubmit="return confirm('Delete this teacher? This cannot be undone.');">
+                                                    @csrf
+                                                    @method('DELETE')
+
+                                                    <button type="submit"
+                                                            class="workspace-link-btn workspace-link-btn-danger">
+                                                        Delete
+                                                    </button>
+                                                </form>
+
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+
+                        </table>
+                    </div>
+                @endif
+            </div>
+
+        </div>
+
+    </div>
 @endsection

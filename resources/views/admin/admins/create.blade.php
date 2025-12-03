@@ -1,5 +1,10 @@
 @extends('layout')
 
+{{-- Load the admin pill/button stylesheet --}}
+@section('head')
+    <link rel="stylesheet" href="{{ asset('tok-admin/css/tok-admin-dashboard.css') }}">
+@endsection
+
 @section('body')
 <h2 style="margin-top:0;">Add New Admin Account</h2>
 
@@ -53,8 +58,15 @@
   </div>
 
   <div class="actions">
-    <button class="btn" type="submit">Create Admin</button>
-    <a class="btn btn-danger" href="{{ route('admin.admins.index') }}">Cancel</a>
+    {{-- Primary pill button (blue outline) --}}
+    <button class="workspace-link-btn" type="submit">
+      Create Admin
+    </button>
+
+    {{-- Secondary pill button (same style, just a link) --}}
+    <a href="{{ route('admin.admins.index') }}" class="workspace-link-btn">
+      Cancel
+    </a>
   </div>
 </form>
 @endsection

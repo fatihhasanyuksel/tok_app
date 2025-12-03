@@ -110,6 +110,20 @@ html, body {
 
 .brand { font-weight: 700; }
 
+.topbar-brand {
+  display: flex;
+  align-items: center;   /* vertical centering of logo + text */
+  gap: 8px;
+  flex-wrap: nowrap;     /* keep logo · Exhibition on one line */
+}
+
+/* SVG logo */
+.topbar-brand img {
+  height: 21px;            /* smaller logo */
+  width: auto;
+  display: block;
+}
+
 /* =========================================
    3. EDITOR STYLES (ProseMirror)
    ========================================= */

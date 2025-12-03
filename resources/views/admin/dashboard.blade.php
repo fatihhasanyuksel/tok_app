@@ -9,17 +9,20 @@
 
   {{-- Flash removed (handled by layout globally) --}}
 
-  <nav class="admin-nav">
+<nav class="admin-nav">
     <a class="btn" href="{{ route('admin.transfer') }}">Transfer Students</a>
     <a class="btn" href="{{ route('admin.teachers.index') }}">Manage Teachers</a>
     <a class="btn" href="{{ route('admin.admins.index') }}">Manage Admins</a>
     <a class="btn" href="{{ route('resources.manage') }}">Manage Resources</a>
     <a class="btn" href="{{ route('admin.students.index') }}">Manage Students</a>
-  </nav>
 
-  <p class="admin-login-info">
-    You are logged in as <strong>{{ auth()->user()->name }}</strong> ({{ auth()->user()->role }}).
-  </p>
+    <!-- NEW BUTTON: Manage ToK Learning Space -->
+    <a class="btn" href="{{ route('tok-ls.admin.classes.index') }}">
+        Manage ToK Learning Space
+    </a>
+</nav>
+
+
 
   <hr class="admin-divider">
 

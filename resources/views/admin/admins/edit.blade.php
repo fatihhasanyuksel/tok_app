@@ -1,5 +1,10 @@
 @extends('layout')
 
+@section('head')
+    {{-- Re-use the same admin CSS as dashboard / students / teachers --}}
+    <link rel="stylesheet" href="{{ asset('tok-admin/css/tok-admin-dashboard.css') }}">
+@endsection
+
 @section('body')
 <h2 style="margin-top:0;">Edit Admin Account</h2>
 
@@ -25,7 +30,7 @@
   .row {margin:14px 0}
   .label {display:block;font-weight:600;margin-bottom:6px}
   .field {width:100%;padding:10px;border:1px solid #ccc;border-radius:8px}
-  .actions {display:flex;gap:8px;margin-top:18px}
+  .actions {display:flex;gap:12px;margin-top:18px;flex-wrap:wrap}
   .error {color:#b00020;font-size:12px;margin-top:6px}
   .hint {display:block;color:#666;font-size:12px;margin-top:4px}
 </style>
@@ -75,8 +80,16 @@
   </div>
 
   <div class="actions">
-    <button class="btn" type="submit">Save Changes</button>
-    <a class="btn btn-danger" href="{{ route('admin.admins.index') }}">Cancel</a>
+    {{-- Blue pill primary --}}
+    <button class="workspace-link-btn" type="submit">
+      Save Changes
+    </button>
+
+    {{-- Blue pill cancel (same style as others) --}}
+    <a href="{{ route('admin.admins.index') }}"
+       class="workspace-link-btn">
+      Cancel
+    </a>
   </div>
 </form>
 @endsection

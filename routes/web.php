@@ -1,4 +1,5 @@
 <?php
+
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -12,16 +13,15 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Admin\TeacherController as AdminTeacherController;
 use App\Http\Controllers\Admin\StudentController as AdminStudentController;
 use App\Http\Controllers\Admin\AdminUserController;
+use App\Http\Controllers\Admin\TlsClassController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\ThreadController;
 use App\Http\Controllers\ResourcesController;
 use App\Http\Controllers\GeneralMessageController;
 use App\Http\Controllers\StudentDashboardController;
 use App\Http\Controllers\StudentStartController;
-
 use App\Http\Controllers\CheckpointStatusController; // Checkpoints (statuses)
 use App\Http\Controllers\Admin\CheckpointStageController; // Admin stages
-
 // Persist PM positions
 use App\Http\Controllers\ThreadPositionsController;
 
@@ -291,4 +291,29 @@ Route::middleware(['web', 'auth'])->group(function () {
         ->name('threads.positions.update')
         ->withoutMiddleware([FrameworkVerifyCsrf::class])
         ->whereNumber('thread');
+});
+
+// ToK Learning Space – Admin view
+Route::middleware(['web', 'auth', EnsureRole::class . ':admin'])->group(function () {
+    // Admin view: list all TLS classes
+    Route::get('/admin/learning-space/classes', [TlsClassController::class, 'index'])
+        ->name('tok-ls.admin.classes.index');
+
+    // Admin view: class detail (with students list)
+    Route::get('/admin/learning-space/classes/{class}', [TlsClassController::class, 'show'])
+        ->name('tok-ls.admin.classes.show');
+
+    // Admin view: per-student view within a class
+    Route::get('/admin/learning-space/classes/{class}/students/{student}', [TlsClassController::class, 'student'])
+        ->name('tok-ls.admin.classes.student');
+        
+    // Admin view: student's lessons in this class (read-only)
+    Route::get('/admin/learning-space/classes/{class}/students/{student}/lessons', [TlsClassController::class, 'studentLessons'])
+        ->name('tok-ls.admin.classes.student-lessons');
+
+    // Admin view: single lesson for this student (read-only)
+    Route::get(
+        '/admin/learning-space/classes/{class}/students/{student}/lessons/{lesson}',
+        [TlsClassController::class, 'studentLessonShow']
+    )->name('tok-ls.admin.classes.student-lesson-show');
 });

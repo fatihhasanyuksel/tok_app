@@ -1,5 +1,10 @@
 @extends('layout')
 
+@section('head')
+    {{-- Load unified admin button + table styling --}}
+    <link rel="stylesheet" href="{{ asset('tok-admin/css/tok-admin-dashboard.css') }}">
+@endsection
+
 @section('body')
   <style>
     /* Same scoped styles as create page */
@@ -60,19 +65,11 @@
     .admin-student-form input,
     .admin-student-form select {
       width: 100%;
-      max-width: 100%;
-      box-sizing: border-box;
       padding: 8px 10px;
       border-radius: 8px;
       border: 1px solid #d1d5db;
       font-size: 14px;
       font-family: inherit;
-    }
-    .admin-student-form input:focus,
-    .admin-student-form select:focus {
-      outline: 2px solid #0b6bd6;
-      outline-offset: 1px;
-      border-color: #0b6bd6;
     }
 
     .admin-student-inline-row {
@@ -90,7 +87,7 @@
       align-items: center;
     }
 
-    /* Same pill button style as create.blade.php */
+    /* Password generator pill */
     .generate-pill-btn {
       padding: 8px 16px;
       border-radius: 999px;
@@ -104,16 +101,14 @@
       text-align: center;
       user-select: none;
     }
-    .generate-pill-btn:hover {
-      background: #e0e7ff;
-    }
+    .generate-pill-btn:hover { background: #e0e7ff; }
     .generate-pill-btn.done {
       background: #dcfce7 !important;
       border-color: #86efac !important;
       color: #166534 !important;
     }
 
-    /* Slightly stronger hover for the delete button */
+    /* stronger hover for delete */
     .btn-danger:hover {
       background: #dc2626;
       border-color: #b91c1c;
@@ -140,7 +135,7 @@
       </div>
     @endif
 
-    {{-- Validation errors --}}
+    {{-- Validation --}}
     @if ($errors->any())
       <div class="flash flash--error">
         <ul style="margin:0; padding-left:18px;">
@@ -151,7 +146,6 @@
       </div>
     @endif
 
-    {{-- Main update form --}}
     <form method="POST" action="{{ route('admin.students.update', $student) }}">
       @csrf
       @method('PUT')
@@ -159,74 +153,55 @@
       <div class="admin-student-form">
         <div>
           <label>Full name</label>
-          <input
-            type="text"
-            name="name"
-            value="{{ old('name', trim($student->first_name.' '.$student->last_name)) }}"
-            required
-          />
+          <input type="text"
+                 name="name"
+                 value="{{ old('name', trim($student->first_name.' '.$student->last_name)) }}"
+                 required>
         </div>
 
         <div>
           <label>Email (username)</label>
-          <input
-            type="email"
-            name="email"
-            value="{{ old('email', $student->email) }}"
-            required
-          />
+          <input type="email"
+                 name="email"
+                 value="{{ old('email', $student->email) }}"
+                 required>
         </div>
 
-        {{-- Parent contact fields --}}
         <div>
           <label>Parent Name</label>
-          <input
-            type="text"
-            name="parent_name"
-            value="{{ old('parent_name', $student->parent_name) }}"
-            placeholder="e.g. Fatima Al Zahra"
-          />
+          <input type="text"
+                 name="parent_name"
+                 value="{{ old('parent_name', $student->parent_name) }}">
         </div>
 
         <div>
           <label>Parent Email</label>
-          <input
-            type="email"
-            name="parent_email"
-            value="{{ old('parent_email', $student->parent_email) }}"
-            placeholder="e.g. parent@example.com"
-          />
+          <input type="email"
+                 name="parent_email"
+                 value="{{ old('parent_email', $student->parent_email) }}">
         </div>
 
         <div>
           <label>Parent Phone</label>
-          <input
-            type="text"
-            name="parent_phone"
-            value="{{ old('parent_phone', $student->parent_phone) }}"
-            placeholder="+971 50 123 4567"
-          />
+          <input type="text"
+                 name="parent_phone"
+                 value="{{ old('parent_phone', $student->parent_phone) }}">
         </div>
 
         <div class="admin-student-inline-row">
           <div>
             <label>Set new password (optional)</label>
-            <input
-              type="text"
-              name="password"
-              id="edit-password-field"
-              placeholder="Leave blank to keep current"
-              value="{{ old('password') }}"
-            />
+            <input type="text"
+                   name="password"
+                   id="edit-password-field"
+                   placeholder="Leave blank to keep current"
+                   value="{{ old('password') }}">
           </div>
 
           <div>
-            {{-- Same pill button style as create page --}}
-            <button
-              type="button"
-              id="generate-pass-btn"
-              class="generate-pill-btn"
-            >
+            <button type="button"
+                    id="generate-pass-btn"
+                    class="generate-pill-btn">
               Generate strong password
             </button>
           </div>
@@ -247,28 +222,42 @@
       </div>
 
       <div class="admin-student-actions">
-        <button class="btn" type="submit">Save Changes</button>
 
-  <button
-    type="button"
-    class="btn"
-    onclick="window.location='{{ route('admin.students.index') }}'"
-  >
-    Cancel
-  </button>
+        {{-- Save --}}
+        <button class="workspace-link-btn" type="submit">
+          Save Changes
+        </button>
 
-        <form method="POST" action="{{ route('admin.students.reset', $student) }}" style="display:inline">
+        {{-- Cancel --}}
+        <button type="button"
+                class="workspace-link-btn"
+                onclick="window.location='{{ route('admin.students.index') }}'">
+          Cancel
+        </button>
+
+        {{-- Reset Password --}}
+        <form method="POST"
+              action="{{ route('admin.students.reset', $student) }}"
+              style="display:inline">
           @csrf
           <input type="hidden" name="generate" value="1">
-          <button class="btn" type="submit">Reset Password</button>
+          <button class="workspace-link-btn" type="submit">
+            Reset Password
+          </button>
         </form>
 
-        <form method="POST" action="{{ route('admin.students.destroy', $student) }}" style="display:inline"
+        {{-- Delete (unchanged) --}}
+        <form method="POST"
+              action="{{ route('admin.students.destroy', $student) }}"
+              style="display:inline"
               onsubmit="return confirm('Delete this student? This does not remove their user account.');">
           @csrf
           @method('DELETE')
-          <button class="btn btn-danger" type="submit">Delete</button>
+          <button class="btn btn-danger" type="submit">
+            Delete
+          </button>
         </form>
+
       </div>
     </form>
   </div>
@@ -280,34 +269,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (!btn || !pw) return;
 
-  // Same password generation rule as create.blade.php
   function generateEasyStrongPassword() {
-    const upper   = "ABCDEFGHJKLMNPQRSTUVWXYZ";     // No I, O
-    const lower   = "abcdefghijkmnopqrstuvwxyz";    // No l
-    const digits  = "23456789";                    // No 0,1
+    const upper   = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+    const lower   = "abcdefghijkmnopqrstuvwxyz";
+    const digits  = "23456789";
     const symbols = "!@#$%";
-
     const all = upper + lower + digits + symbols;
 
-    // Ensure one from each group
     let pass = "";
-    pass += upper[Math.floor(Math.random() * upper.length)];
-    pass += lower[Math.floor(Math.random() * lower.length)];
-    pass += digits[Math.floor(Math.random() * digits.length)];
-    pass += symbols[Math.floor(Math.random() * symbols.length)];
+    pass += upper[Math.floor(Math.random()*upper.length)];
+    pass += lower[Math.floor(Math.random()*lower.length)];
+    pass += digits[Math.floor(Math.random()*digits.length)];
+    pass += symbols[Math.floor(Math.random()*symbols.length)];
 
-    // Fill to 8 chars total
-    for (let i = 0; i < 4; i++) {
-      pass += all[Math.floor(Math.random() * all.length)];
-    }
+    for (let i = 0; i < 4; i++)
+      pass += all[Math.floor(Math.random()*all.length)];
 
-    // Shuffle characters
     return pass.split("").sort(() => 0.5 - Math.random()).join("");
   }
 
   btn.addEventListener('click', () => {
     const strong = generateEasyStrongPassword();
-
     pw.value = strong;
     pw.focus();
     pw.select();
@@ -322,4 +304,4 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
-@endsection      
+@endsection

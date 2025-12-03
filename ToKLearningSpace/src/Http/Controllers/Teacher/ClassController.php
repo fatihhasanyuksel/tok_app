@@ -3,16 +3,22 @@
 namespace ToKLearningSpace\Http\Controllers\Teacher;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use ToKLearningSpace\Models\LsClass;
-use App\Models\User;
 
 class ClassController extends Controller
 {
+    /**
+     * List active (non-archived) classes for the current teacher.
+     */
     public function index()
     {
+        $teacherId = auth()->id();
+
         $classes = LsClass::query()
-            ->whereNull('archived_at')              // ← hide archived classes
+            ->where('teacher_id', $teacherId)    // only this teacher's classes
+            ->whereNull('archived_at')           // active (not archived)
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -21,13 +27,17 @@ class ClassController extends Controller
         ]);
     }
 
-    // Show the "Create Class" page
+    /**
+     * Show the "Create Class" page.
+     */
     public function createForm()
     {
         return view('tok_ls::teacher.classes.create');
     }
 
-    // Handle POST: Save class (Year removed)
+    /**
+     * Handle POST: Save class.
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -43,11 +53,14 @@ class ClassController extends Controller
         return redirect()->route('tok-ls.teacher.classes');
     }
 
-    // View a single class with Blade view
+    /**
+     * View a single class.
+     */
     public function show(LsClass $class)
     {
-        // TEMPORARILY DISABLED — re-enable later
-        // if ($class->teacher_id !== auth()->id()) abort(403);
+        if ($class->teacher_id != auth()->id()) {
+            abort(403);
+        }
 
         // eager-load students, sorted by name
         $class->load(['students' => function ($q) {
@@ -59,11 +72,14 @@ class ClassController extends Controller
         ]);
     }
 
-    // Archive (soft hide) a class
+    /**
+     * Archive (soft hide) a class.
+     */
     public function archive(LsClass $class)
     {
-        // Later we can re-enable strict ownership checks if needed:
-        // if ($class->teacher_id !== auth()->id()) abort(403);
+        if ($class->teacher_id != auth()->id()) {
+            abort(403);
+        }
 
         if ($class->archived_at) {
             return redirect()
@@ -79,10 +95,14 @@ class ClassController extends Controller
             ->with('success', 'Class archived. You can restore it later from the archived list.');
     }
 
+    /**
+     * Delete a class (temporary hard delete – will be replaced by retention later).
+     */
     public function destroy(LsClass $class)
     {
-        // TEMPORARY: allow delete for MVP.
-        // Later will enforce ownership checks + soft delete rules.
+        if ($class->teacher_id != auth()->id()) {
+            abort(403);
+        }
 
         $class->delete();
 
@@ -91,9 +111,15 @@ class ClassController extends Controller
             ->with('success', 'Class deleted.');
     }
 
-    // Show "Add Students" page
+    /**
+     * Show "Add Students" page.
+     */
     public function addStudents(LsClass $class, Request $request)
     {
+        if ($class->teacher_id != auth()->id()) {
+            abort(403);
+        }
+
         $search = trim((string) $request->input('q'));
 
         // Only show STUDENTS
@@ -118,10 +144,15 @@ class ClassController extends Controller
         ]);
     }
 
-    // Handle POST for attaching selected students
+    /**
+     * Handle POST for attaching selected students.
+     */
     public function storeStudents(LsClass $class, Request $request)
     {
-        // Validate incoming IDs
+        if ($class->teacher_id != auth()->id()) {
+            abort(403);
+        }
+
         $data = $request->validate([
             'student_ids'   => 'required|array',
             'student_ids.*' => 'integer|exists:users,id',
@@ -135,10 +166,15 @@ class ClassController extends Controller
             ->with('success', 'Students added successfully.');
     }
 
-    // Remove a single student from the class
+    /**
+     * Remove a single student from the class.
+     */
     public function removeStudent(LsClass $class, User $student)
     {
-        // Later ownership checks may return
+        if ($class->teacher_id != auth()->id()) {
+            abort(403);
+        }
+
         $class->students()->detach($student->id);
 
         return redirect()
@@ -146,10 +182,15 @@ class ClassController extends Controller
             ->with('success', 'Student removed from class.');
     }
 
-    // List archived classes
-    public function archived(Request $request)
+    /**
+     * List archived classes for the current teacher.
+     */
+    public function archived()
     {
+        $teacherId = auth()->id();
+
         $classes = LsClass::query()
+            ->where('teacher_id', $teacherId)    // only this teacher's classes
             ->whereNotNull('archived_at')
             ->orderBy('archived_at', 'desc')
             ->get();
@@ -159,10 +200,15 @@ class ClassController extends Controller
         ]);
     }
 
-    // NEW: Unarchive a class
+    /**
+     * Unarchive a class.
+     */
     public function unarchive(LsClass $class)
     {
-        // Restore visibility
+        if ($class->teacher_id != auth()->id()) {
+            abort(403);
+        }
+
         $class->archived_at = null;
         $class->save();
 
